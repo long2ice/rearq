@@ -39,7 +39,13 @@ def next_cron(
     if isinstance(weekday, str):
         weekday = WEEKDAYS.index(weekday.lower())
     options = Options(
-        month=month, day=day, weekday=weekday, hour=hour, minute=minute, second=second, microsecond=microsecond
+        month=month,
+        day=day,
+        weekday=weekday,
+        hour=hour,
+        minute=minute,
+        second=second,
+        microsecond=microsecond,
     )
 
     while True:
@@ -54,7 +60,7 @@ def _get_next_dt(dt_: datetime, options: Options) -> Optional[datetime]:  # noqa
     for field, v in dataclasses.asdict(options).items():
         if v is None:
             continue
-        if field == 'weekday':
+        if field == "weekday":
             next_v = dt_.weekday()
         else:
             next_v = getattr(dt_, field)
@@ -66,25 +72,33 @@ def _get_next_dt(dt_: datetime, options: Options) -> Optional[datetime]:  # noqa
         # print(field, v, next_v, mismatch)
         if mismatch:
             micro = max(dt_.microsecond - options.microsecond, 0)
-            if field == 'month':
+            if field == "month":
                 if dt_.month == 12:
                     return datetime(dt_.year + 1, 1, 1)
                 else:
                     return datetime(dt_.year, dt_.month + 1, 1)
-            elif field in ('day', 'weekday'):
+            elif field in ("day", "weekday"):
                 return (
                     dt_
                     + timedelta(days=1)
-                    - timedelta(hours=dt_.hour, minutes=dt_.minute, seconds=dt_.second, microseconds=micro)
+                    - timedelta(
+                        hours=dt_.hour, minutes=dt_.minute, seconds=dt_.second, microseconds=micro
+                    )
                 )
-            elif field == 'hour':
-                return dt_ + timedelta(hours=1) - timedelta(minutes=dt_.minute, seconds=dt_.second, microseconds=micro)
-            elif field == 'minute':
-                return dt_ + timedelta(minutes=1) - timedelta(seconds=dt_.second, microseconds=micro)
-            elif field == 'second':
+            elif field == "hour":
+                return (
+                    dt_
+                    + timedelta(hours=1)
+                    - timedelta(minutes=dt_.minute, seconds=dt_.second, microseconds=micro)
+                )
+            elif field == "minute":
+                return (
+                    dt_ + timedelta(minutes=1) - timedelta(seconds=dt_.second, microseconds=micro)
+                )
+            elif field == "second":
                 return dt_ + timedelta(seconds=1) - timedelta(microseconds=micro)
             else:
-                assert field == 'microsecond', field
+                assert field == "microsecond", field
                 return dt_ + timedelta(microseconds=options.microsecond - dt_.microsecond)
     return None
 
@@ -120,7 +134,7 @@ class CronJob:
         )
 
     def __repr__(self) -> str:
-        return '<CronJob {}>'.format(' '.join(f'{k}={v}' for k, v in self.__dict__.items()))
+        return "<CronJob {}>".format(" ".join(f"{k}={v}" for k, v in self.__dict__.items()))
 
 
 def cron(
@@ -164,17 +178,17 @@ def cron(
     """
 
     if isinstance(coroutine, str):
-        name = name or 'cron:' + coroutine
+        name = name or "cron:" + coroutine
         coroutine_: WorkerCoroutine = import_string(coroutine)
     else:
         coroutine_ = coroutine
 
-    assert asyncio.iscoroutinefunction(coroutine_), f'{coroutine_} is not a coroutine function'
+    assert asyncio.iscoroutinefunction(coroutine_), f"{coroutine_} is not a coroutine function"
     timeout = to_seconds(timeout)
     keep_result = to_seconds(keep_result)
 
     return CronJob(
-        name or 'cron:' + coroutine_.__qualname__,
+        name or "cron:" + coroutine_.__qualname__,
         coroutine_,
         month,
         day,

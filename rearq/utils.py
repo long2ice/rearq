@@ -1,102 +1,34 @@
-import asyncio
-import logging
-from datetime import datetime, timedelta
-from time import time
-from typing import TYPE_CHECKING, Any, AsyncGenerator, Dict, Optional, Sequence, overload
-
-logger = logging.getLogger('arq.utils')
-
-if TYPE_CHECKING:
-    from .typing import SecondsTimedelta
+import time
+from datetime import timedelta, datetime
+from typing import Union
 
 
-def as_int(f: float) -> int:
-    return int(round(f))
-
-
-def timestamp_ms() -> int:
-    return as_int(time() * 1000)
-
-
-def to_unix_ms(dt: datetime) -> int:
+def to_ms_timestamp(value: Union[None, int, float, timedelta, datetime]):
     """
-    convert a datetime to epoch with milliseconds as int
+    covert to timestamp
+    :param value:
+    :return:
     """
-    return as_int(dt.timestamp() * 1000)
+    if isinstance(value, datetime):
+        return round(value.timestamp() * 1000)
+    if isinstance(value, timedelta):
+        value = value.total_seconds()
+    value = value or 0
+    return round((time.time() + value) * 1000)
 
 
-def ms_to_datetime(unix_ms: int) -> datetime:
-    return datetime.fromtimestamp(unix_ms / 1000)
-
-
-@overload
-def to_ms(td: None) -> None:
-    pass
-
-
-@overload
-def to_ms(td: 'SecondsTimedelta') -> int:
-    pass
-
-
-def to_ms(td: Optional['SecondsTimedelta']) -> Optional[int]:
-    if td is None:
-        return td
-    elif isinstance(td, timedelta):
-        td = td.total_seconds()
-    return as_int(td * 1000)
-
-
-@overload
-def to_seconds(td: None) -> None:
-    pass
-
-
-@overload
-def to_seconds(td: 'SecondsTimedelta') -> float:
-    pass
-
-
-def to_seconds(td: Optional['SecondsTimedelta']) -> Optional[float]:
-    if td is None:
-        return td
-    elif isinstance(td, timedelta):
-        return td.total_seconds()
-    return td
-
-
-async def poll(step: float = 0.5) -> AsyncGenerator[float, None]:
-    loop = asyncio.get_event_loop()
-    start = loop.time()
-    while True:
-        before = loop.time()
-        yield before - start
-        after = loop.time()
-        wait = max([0, step - after + before])
-        await asyncio.sleep(wait)
-
-
-DEFAULT_CURTAIL = 80
-
-
-def truncate(s: str, length: int = DEFAULT_CURTAIL) -> str:
+def timestamp_ms_now() -> int:
     """
-    Truncate a string and add an ellipsis (three dots) to the end if it was too long
-
-    :param s: string to possibly truncate
-    :param length: length to truncate the string to
+    now timestamp
+    :return:
     """
-    if len(s) > length:
-        s = s[: length - 1] + '…'
-    return s
+    return round(time.time() * 1000)
 
 
-def args_to_string(args: Sequence[Any], kwargs: Dict[str, Any]) -> str:
-    arguments = ''
-    if args:
-        arguments = ', '.join(map(repr, args))
-    if kwargs:
-        if arguments:
-            arguments += ', '
-        arguments += ', '.join(f'{k}={v!r}' for k, v in sorted(kwargs.items()))
-    return truncate(arguments)
+def ms_to_datetime(ms: int) -> datetime:
+    """
+    ms to datetime
+    :param ms:
+    :return:
+    """
+    return datetime.fromtimestamp(ms / 1000)

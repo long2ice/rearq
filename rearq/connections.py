@@ -15,7 +15,7 @@ from .constants import default_queue_name, job_key_prefix, result_key_prefix
 from .jobs import Deserializer, Job, JobDef, JobResult, Serializer, deserialize_job, serialize_job
 from .utils import timestamp_ms, to_ms, to_unix_ms
 
-logger = logging.getLogger('arq.connections')
+logger = logging.getLogger("arq.connections")
 
 
 @dataclass
@@ -26,7 +26,7 @@ class RedisSettings:
     Used by :func:`arq.connections.create_pool` and :class:`arq.worker.Worker`.
     """
 
-    host: Union[str, List[Tuple[str, int]]] = 'localhost'
+    host: Union[str, List[Tuple[str, int]]] = "localhost"
     port: int = 6379
     database: int = 0
     password: Optional[str] = None
@@ -36,10 +36,10 @@ class RedisSettings:
     conn_retry_delay: int = 1
 
     sentinel: bool = False
-    sentinel_master: str = 'mymaster'
+    sentinel_master: str = "mymaster"
 
     def __repr__(self) -> str:
-        return '<RedisSettings {}>'.format(' '.join(f'{k}={v}' for k, v in self.__dict__.items()))
+        return "<RedisSettings {}>".format(" ".join(f"{k}={v}" for k, v in self.__dict__.items()))
 
 
 # extra time after the job is expected to start when the job key should expire, 1 day in ms
@@ -95,7 +95,9 @@ class ArqRedis(Redis):  # type: ignore
         """
         job_id = _job_id or uuid4().hex
         job_key = job_key_prefix + job_id
-        assert not (_defer_until and _defer_by), "use either 'defer_until' or 'defer_by' or neither, not both"
+        assert not (
+            _defer_until and _defer_by
+        ), "use either 'defer_until' or 'defer_by' or neither, not both"
 
         defer_by_ms = to_ms(_defer_by)
         expires_ms = to_ms(_expires)
@@ -120,7 +122,9 @@ class ArqRedis(Redis):  # type: ignore
 
             expires_ms = expires_ms or score - enqueue_time_ms + expires_extra_ms
 
-            job = serialize_job(function, args, kwargs, _job_try, enqueue_time_ms, serializer=self.job_serializer)
+            job = serialize_job(
+                function, args, kwargs, _job_try, enqueue_time_ms, serializer=self.job_serializer
+            )
             tr = conn.multi_exec()
             tr.psetex(job_key, expires_ms, job)
             tr.zadd(_queue_name, score, job_id)
@@ -146,9 +150,9 @@ class ArqRedis(Redis):  # type: ignore
         """
         Get results for all jobs in redis.
         """
-        keys = await self.keys(result_key_prefix + '*')
+        keys = await self.keys(result_key_prefix + "*")
         results = await asyncio.gather(*[self._get_job_result(k) for k in keys])
-        return sorted(results, key=attrgetter('enqueue_time'))
+        return sorted(results, key=attrgetter("enqueue_time"))
 
     async def _get_job_def(self, job_id: str, score: int) -> JobDef:
         v = await self.get(job_key_prefix + job_id, encoding=None)
@@ -197,13 +201,15 @@ async def create_pool(
         addr = settings.host, settings.port
 
     try:
-        pool = await pool_factory(addr, db=settings.database, password=settings.password, encoding='utf8')
+        pool = await pool_factory(
+            addr, db=settings.database, password=settings.password, encoding="utf8"
+        )
         pool = ArqRedis(pool, job_serializer=job_serializer, job_deserializer=job_deserializer)
 
     except (ConnectionError, OSError, aioredis.RedisError, asyncio.TimeoutError) as e:
         if retry < settings.conn_retries:
             logger.warning(
-                'redis connection error %s %s %s, %d retries remaining...',
+                "redis connection error %s %s %s, %d retries remaining...",
                 addr,
                 e.__class__.__name__,
                 e,
@@ -214,7 +220,7 @@ async def create_pool(
             raise
     else:
         if retry > 0:
-            logger.info('redis connection successful')
+            logger.info("redis connection successful")
         return pool
 
     # recursively attempt to create the pool outside the except block to avoid
@@ -231,5 +237,5 @@ async def log_redis_info(redis: Redis, log_func: Callable[[str], Any]) -> None:
         f'redis_version={info["server"]["redis_version"]} '
         f'mem_usage={info["memory"]["used_memory_human"]} '
         f'clients_connected={info["clients"]["connected_clients"]} '
-        f'db_keys={key_count}'
+        f"db_keys={key_count}"
     )
