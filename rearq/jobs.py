@@ -1,18 +1,17 @@
 import asyncio
+import datetime
 import logging
 from dataclasses import dataclass
-from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-from aioredis import ConnectionsPool, Redis
+from pydantic import BaseModel
 
+from . import ReArq
 from .exceptions import SerializationError
+from .utils import poll, timestamp_ms_now
 
 logger = logging.getLogger("arq.jobs")
-
-Serializer = Callable[[Dict[str, Any]], bytes]
-Deserializer = Callable[[bytes], Dict[str, Any]]
 
 
 class JobStatus(str, Enum):
@@ -32,14 +31,13 @@ class JobStatus(str, Enum):
     not_found = "not_found"
 
 
-@dataclass
-class JobDef:
+class JobDef(BaseModel):
     function: str
     args: Tuple[Any, ...]
     kwargs: Dict[str, Any]
-    job_try: int
-    enqueue_time: datetime
-    score: Optional[int]
+    retry_times: int
+    enqueue_ms: int
+    queue: str
 
 
 @dataclass
@@ -59,14 +57,17 @@ class Job:
     def __init__(
             self,
             job_id: str,
-            redis: Redis,
+            job_key_prefix: str,
+            result_key_prefix: str,
+            in_progress_key_prefix: str,
             queue_name,
-            deserializer: Optional[Deserializer],
     ):
-        self.job_id = job_id
-        self.redis = redis
+        self.result_key_prefix = result_key_prefix
+        self.in_progress_key_prefix = in_progress_key_prefix
+        self.job_key_prefix = job_key_prefix
         self.queue_name = queue_name
-        self.deserializer = deserializer
+        self.job_id = job_id
+        self.redis = ReArq.get_redis()
 
     async def result(self, timeout: Optional[float] = None, *, pole_delay: float = 0.5) -> Any:
         """
@@ -95,11 +96,11 @@ class Job:
         """
         info: Optional[JobDef] = await self.result_info()
         if not info:
-            v = await self._redis.get(job_key_prefix + self.job_id, encoding=None)
+            v = await self.redis.get(self.job_key_prefix + self.job_id, encoding=None)
             if v:
-                info = deserialize_job(v, deserializer=self._deserializer)
+                info = JobDef.parse_raw(v)
         if info:
-            info.score = await self._redis.zscore(self._queue_name, self.job_id)
+            info.score = await self.redis.zscore(self.queue_name, self.job_id)
         return info
 
     async def result_info(self) -> Optional[JobResult]:
@@ -107,9 +108,9 @@ class Job:
         Information about the job result if available, does not wait for the result. Does not raise an exception
         even if the job raised one.
         """
-        v = await self._redis.get(result_key_prefix + self.job_id, encoding=None)
+        v = await self.redis.get(self.result_key_prefix + self.job_id, encoding=None)
         if v:
-            return deserialize_result(v, deserializer=self._deserializer)
+            return JobResult.parse_raw(v)
         else:
             return None
 
@@ -117,15 +118,15 @@ class Job:
         """
         Status of the job.
         """
-        if await self._redis.exists(result_key_prefix + self.job_id):
+        if await self.redis.exists(self.result_key_prefix + self.job_id):
             return JobStatus.complete
-        elif await self._redis.exists(in_progress_key_prefix + self.job_id):
+        elif await self.redis.exists(self.in_progress_key_prefix + self.job_id):
             return JobStatus.in_progress
         else:
-            score = await self._redis.zscore(self._queue_name, self.job_id)
+            score = await self.redis.zscore(self.queue_name, self.job_id)
             if not score:
                 return JobStatus.not_found
-            return JobStatus.deferred if score > timestamp_ms() else JobStatus.queued
+            return JobStatus.deferred if score > timestamp_ms_now() else JobStatus.queued
 
     def __repr__(self) -> str:
-        return f"<arq job {self.job_id}>"
+        return f"<rearq job {self.job_id}>"

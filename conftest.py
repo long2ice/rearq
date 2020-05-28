@@ -4,6 +4,8 @@ import pytest
 
 from rearq import ReArq
 
+rearq = ReArq()
+
 
 @pytest.fixture(scope="session")
 def loop():
@@ -13,6 +15,4 @@ def loop():
 
 @pytest.fixture(scope="session", autouse=True)
 def initialize_tests(loop, request):
-    loop.run_until_complete(ReArq.init())
-
-    request.addfinalizer(lambda: ReArq.close())
+    loop.run_until_complete(rearq.init())
