@@ -3,7 +3,7 @@ import pytest
 from conftest import rearq
 
 
-@rearq.task(queue="queue")
+@rearq.task()
 async def add(a, b):
     return a + b
 

@@ -1,13 +1,13 @@
 import asyncio
-import datetime
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
-from . import ReArq
+from . import job_key_prefix, result_key_prefix, in_progress_key_prefix
 from .exceptions import SerializationError
 from .utils import poll, timestamp_ms_now
 
@@ -33,8 +33,8 @@ class JobStatus(str, Enum):
 
 class JobDef(BaseModel):
     function: str
-    args: Tuple[Any, ...]
-    kwargs: Dict[str, Any]
+    args: Any
+    kwargs: Any
     retry_times: int
     enqueue_ms: int
     queue: str
@@ -56,18 +56,13 @@ class Job:
 
     def __init__(
             self,
+            rearq,
             job_id: str,
-            job_key_prefix: str,
-            result_key_prefix: str,
-            in_progress_key_prefix: str,
             queue_name,
     ):
-        self.result_key_prefix = result_key_prefix
-        self.in_progress_key_prefix = in_progress_key_prefix
-        self.job_key_prefix = job_key_prefix
         self.queue_name = queue_name
         self.job_id = job_id
-        self.redis = ReArq.get_redis()
+        self.redis = rearq.get_redis()
 
     async def result(self, timeout: Optional[float] = None, *, pole_delay: float = 0.5) -> Any:
         """
@@ -96,7 +91,7 @@ class Job:
         """
         info: Optional[JobDef] = await self.result_info()
         if not info:
-            v = await self.redis.get(self.job_key_prefix + self.job_id, encoding=None)
+            v = await self.redis.get(job_key_prefix + self.job_id, encoding=None)
             if v:
                 info = JobDef.parse_raw(v)
         if info:
@@ -108,7 +103,7 @@ class Job:
         Information about the job result if available, does not wait for the result. Does not raise an exception
         even if the job raised one.
         """
-        v = await self.redis.get(self.result_key_prefix + self.job_id, encoding=None)
+        v = await self.redis.get(result_key_prefix + self.job_id, encoding=None)
         if v:
             return JobResult.parse_raw(v)
         else:
@@ -118,9 +113,9 @@ class Job:
         """
         Status of the job.
         """
-        if await self.redis.exists(self.result_key_prefix + self.job_id):
+        if await self.redis.exists(result_key_prefix + self.job_id):
             return JobStatus.complete
-        elif await self.redis.exists(self.in_progress_key_prefix + self.job_id):
+        elif await self.redis.exists(in_progress_key_prefix + self.job_id):
             return JobStatus.in_progress
         else:
             score = await self.redis.zscore(self.queue_name, self.job_id)
