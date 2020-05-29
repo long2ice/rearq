@@ -1,17 +1,18 @@
 import asyncio
+import datetime
 import logging
 from dataclasses import dataclass
-from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Tuple, Dict, Callable
 
+from crontab import CronTab
 from pydantic import BaseModel
 
 from . import job_key_prefix, result_key_prefix, in_progress_key_prefix
 from .exceptions import SerializationError
-from .utils import poll, timestamp_ms_now
+from .utils import poll, timestamp_ms_now, to_ms_timestamp
 
-logger = logging.getLogger("arq.jobs")
+logger = logging.getLogger("rearq.jobs")
 
 
 class JobStatus(str, Enum):
@@ -33,9 +34,9 @@ class JobStatus(str, Enum):
 
 class JobDef(BaseModel):
     function: str
-    args: Any
-    kwargs: Any
-    retry_times: int
+    args: Optional[Tuple[Any, ...]]
+    kwargs: Optional[Dict[Any, Any]]
+    job_retry: int
     enqueue_ms: int
     queue: str
 
@@ -58,8 +59,10 @@ class Job:
             self,
             rearq,
             job_id: str,
-            queue_name,
+            queue_name: str,
+            function: Callable
     ):
+        self.function = function
         self.queue_name = queue_name
         self.job_id = job_id
         self.redis = rearq.get_redis()
@@ -93,7 +96,7 @@ class Job:
         if not info:
             v = await self.redis.get(job_key_prefix + self.job_id, encoding=None)
             if v:
-                info = JobDef.parse_raw(v)
+                info = JobDef.parse_obj(v)
         if info:
             info.score = await self.redis.zscore(self.queue_name, self.job_id)
         return info
@@ -105,7 +108,7 @@ class Job:
         """
         v = await self.redis.get(result_key_prefix + self.job_id, encoding=None)
         if v:
-            return JobResult.parse_raw(v)
+            return JobResult.parse_obj(v)
         else:
             return None
 
@@ -125,3 +128,19 @@ class Job:
 
     def __repr__(self) -> str:
         return f"<rearq job {self.job_id}>"
+
+
+class CronJob(Job):
+    _next_run: Optional[datetime] = None
+
+    def __init__(self, rearq, job_id: str, queue_name: str, function: Callable, cron: CronTab,
+                 run_at_startup: bool = False, ):
+        super().__init__(rearq, job_id, queue_name, function)
+        self.run_at_startup = run_at_startup
+        self.cron = cron
+
+    def set_next(self):
+        self._next_run = to_ms_timestamp(self.cron.next(default_utc=True))
+
+    def __repr__(self) -> str:
+        return '<CronJob {}>'.format(' '.join(f'{k}={v}' for k, v in self.__dict__.items()))

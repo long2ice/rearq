@@ -1,25 +1,21 @@
 import asyncio
-import datetime
 import functools
 import logging
-from dataclasses import dataclass
 from functools import wraps
 from ssl import SSLContext
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 from typing import List
 from typing import Set
-from uuid import uuid4
 
 import aioredis
-from aioredis import MultiExecError
 from aioredis import Redis
-from aioredis.commands import MultiExec
+from crontab import CronTab
 
 from rearq.exceptions import ConfigurationError, UsageError
 from rearq.utils import timestamp_ms_now, to_ms_timestamp
 from .constants import queue_key_prefix, default_queue, delay_queue, in_progress_key_prefix, result_key_prefix, \
-    job_key_prefix
-from .jobs import JobDef, Job
+    job_key_prefix, retry_key_prefix
+from .task import Task, CronTask
 from .utils import timestamp_ms_now, to_ms_timestamp
 
 Serializer = Callable[[Dict[str, Any]], bytes]
@@ -28,179 +24,10 @@ Deserializer = Callable[[bytes], Dict[str, Any]]
 logger = logging.getLogger("rearq")
 
 
-@dataclass
-class Task:
-    function: str
-    queue: str
-    delay_queue: str
-    rearq: 'ReArq'
-    _expires_extra_ms = 86_400_000
-
-    async def delay(
-            self,
-            args: Tuple[Any, ...],
-            kwargs: Dict[str, Any],
-            job_id: str = uuid4().hex,
-            countdown: Union[float, datetime.timedelta] = 0,
-            eta: Optional[datetime.datetime] = None,
-            expires: Optional[Union[float, datetime.datetime]] = None,
-            retry_times: int = 0,
-    ):
-        if countdown:
-            defer_ts = to_ms_timestamp(countdown)
-        elif eta:
-            defer_ts = to_ms_timestamp(eta)
-        else:
-            defer_ts = timestamp_ms_now()
-        enqueue_ms = timestamp_ms_now()
-        expires_ms = (
-            to_ms_timestamp(expires) if expires else defer_ts - enqueue_ms + self._expires_extra_ms
-        )
-        job_key = job_key_prefix + job_id
-        redis = self.rearq.get_redis()
-
-        pipe = redis.pipeline()
-        pipe.unwatch()
-        pipe.watch(job_key)
-        job_exists = pipe.exists(job_key)
-        job_result_exists = pipe.exists(result_key_prefix + job_id)
-        await pipe.execute()
-        if await job_exists or await job_result_exists:
-            return None
-
-        tr = redis.multi_exec()  # type:MultiExec
-        tr.psetex(
-            job_key,
-            expires_ms,
-            JobDef(
-                function=self.function,
-                args=args,
-                kwargs=kwargs,
-                retry_times=retry_times,
-                enqueue_ms=enqueue_ms,
-                queue=self.queue
-            ).json(),
-        )
-
-        if not eta and not countdown:
-            tr.xadd(self.queue, {"job_id": job_id})
-        else:
-            tr.zadd(self.delay_queue, defer_ts, job_id)
-
-        try:
-            await tr.execute()
-        except MultiExecError as e:
-            logger.warning(f"MultiExecError: {e}")
-            await asyncio.gather(*tr._results, return_exceptions=True)
-            return None
-        return Job(
-            self.rearq,
-            job_id,
-            self.queue,
-        )
-
-
-@dataclass
-class Worker:
-    _redis: Redis
-    _main_task: Optional[asyncio.Task] = None
-
-    def __init__(self, rearq: 'ReArq', queues: List[str], max_jobs: int = 10):
-        self.max_jobs = max_jobs
-        self.rearq = rearq
-        self.queues = queues
-        self._redis = rearq.get_redis()
-        self.loop = asyncio.get_event_loop()
-        self.latest_ids = ['0-0' for _ in range(len(queues))]
-        self.sem = asyncio.BoundedSemaphore(max_jobs)
-        self.queue_read_limit = max(max_jobs * 5, 100)
-
-    async def log_redis_info(self, ) -> None:
-        p = self._redis.pipeline()
-        p.info()
-        p.dbsize()
-        info, key_count = await p.execute()
-
-        logger.info(
-            f'redis_version={info["server"]["redis_version"]} '
-            f'mem_usage={info["memory"]["used_memory_human"]} '
-            f'clients_connected={info["clients"]["connected_clients"]} '
-            f'db_keys={key_count}'
-        )
-
-    async def _main(self) -> None:
-        logger.info('Start worker success')
-        await self.log_redis_info()
-        await self.rearq.startup()
-
-        while True:
-            async with self.sem:
-                msgs = await self._redis.xread(self.queues, count=self.queue_read_limit, latest_ids=self.latest_ids)
-                for msg in msgs:
-                    queue, msg_id, job = msg
-                    job_id = job.get('job_id')
-                    in_progress_key = in_progress_key_prefix + job_id
-                    p = self._redis.pipeline()
-                    p.unwatch(),
-                    p.watch(in_progress_key)
-                    p.exists(in_progress_key)
-                    _, _, ongoing_exists = await p.execute()
-                    if ongoing_exists:
-                        self.sem.release()
-                        logger.debug('job %s already running elsewhere', job_id)
-                        continue
-                    tr = self._redis.multi_exec()
-                    tr.setex(in_progress_key, b'1')
-                    try:
-                        await tr.execute()
-                    except MultiExecError:
-                        self.sem.release()
-                        logger.debug('multi-exec error, job %s already started elsewhere', job_id)
-                        await asyncio.gather(*tr._results, return_exceptions=True)
-                    else:
-                        task = self.loop.create_task(self.run_job(job_id))
-                        task.add_done_callback(lambda _: self.sem.release())
-                        self.tasks.append(task)
-
-    async def run_job(self, job_id: str):
-        pass
-
-    def run(self):
-        """
-        Run main task
-        :return:
-        """
-        self._main_task = self.loop.create_task(self._main())
-        try:
-            self.loop.run_until_complete(self._main_task)
-        except asyncio.CancelledError:
-            pass
-        finally:
-            self.loop.run_until_complete(self.close())
-
-    async def async_run(self):
-        """
-        Asynchronously run the worker, does not close connections. Useful when testing.
-        """
-        self._main_task = self.loop.create_task(self._main())
-        await self._main_task
-
-    async def close(self):
-        if not self._redis:
-            return
-        await self.rearq.shutdown()
-        await self.rearq.close()
-
-
-class Timer(Worker):
-    def poll(self):
-        pass
-
-
 class ReArq:
     _redis: Optional[Redis] = None
 
-    _task_map = {}
+    _function_map = {}
     _on_startup: Set[Callable] = {}
     _on_shutdown: Set[Callable] = {}
 
@@ -251,26 +78,31 @@ class ReArq:
             raise UsageError("You must call .init() first!")
         return self._redis
 
-    def create_task(self, func: Callable, queue: Optional[str] = None):
+    def get_function_map(self):
+        return self._function_map
+
+    def create_task(self, func: Callable, queue: Optional[str] = None, cron: Optional[CronTab] = None):
 
         if not callable(func):
             raise UsageError("Task must be Callable!")
 
         function = func.__name__
-        self._task_map[function] = func
-
-        return Task(
-            function=function,
-            queue=queue_key_prefix + queue if queue else default_queue,
-            delay_queue=delay_queue,
-            rearq=self
-        )
+        self._function_map[function] = func
+        if cron:
+            CronTask.add_cron_task(function, cron)
+        else:
+            return Task(
+                function=function,
+                queue=queue_key_prefix + queue if queue else default_queue,
+                delay_queue=delay_queue,
+                rearq=self
+            )
 
     def task(
-            self, queue: Optional[str] = None,
+            self, queue: Optional[str] = None, cron: Optional[CronTab] = None
     ):
         def wrapper(func: Callable):
-            return self.create_task(func, queue)
+            return self.create_task(func, queue, cron)
 
         return wrapper
 
