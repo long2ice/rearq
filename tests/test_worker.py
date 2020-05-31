@@ -1,10 +1,16 @@
 import pytest
 
 from conftest import rearq
-from rearq import Worker
+from rearq.worker import Worker, TimerWorker
 
 
 @pytest.mark.asyncio
-async def test_run():
-    worker = Worker(rearq, queues=['rearq:queue:default'])
+async def test_worker_run():
+    worker = Worker(rearq)
+    await worker.async_run()
+
+
+@pytest.mark.asyncio
+async def test_timer_worker_run():
+    worker = TimerWorker(rearq)
     await worker.async_run()

@@ -1,5 +1,5 @@
 import asyncio
-import datetime
+from datetime import datetime
 import logging
 from dataclasses import dataclass
 from enum import Enum
@@ -34,14 +34,14 @@ class JobStatus(str, Enum):
 
 class JobDef(BaseModel):
     function: str
-    args: Optional[Tuple[Any, ...]]
-    kwargs: Optional[Dict[Any, Any]]
+    args: Optional[Tuple[Any, ...]] = None
+    kwargs: Optional[Dict[Any, Any]] = None
     job_retry: int
     enqueue_ms: int
     queue: str
+    job_id: str
 
 
-@dataclass
 class JobResult(JobDef):
     success: bool
     result: Any
@@ -57,15 +57,13 @@ class Job:
 
     def __init__(
             self,
-            rearq,
+            redis,
             job_id: str,
             queue_name: str,
-            function: Callable
     ):
-        self.function = function
         self.queue_name = queue_name
         self.job_id = job_id
-        self.redis = rearq.get_redis()
+        self.redis = redis
 
     async def result(self, timeout: Optional[float] = None, *, pole_delay: float = 0.5) -> Any:
         """
@@ -133,9 +131,8 @@ class Job:
 class CronJob(Job):
     _next_run: Optional[datetime] = None
 
-    def __init__(self, rearq, job_id: str, queue_name: str, function: Callable, cron: CronTab,
-                 run_at_startup: bool = False, ):
-        super().__init__(rearq, job_id, queue_name, function)
+    def __init__(self, redis, job_id: str, queue_name: str, cron: CronTab, run_at_startup: bool = False, ):
+        super().__init__(redis, job_id, queue_name)
         self.run_at_startup = run_at_startup
         self.cron = cron
 

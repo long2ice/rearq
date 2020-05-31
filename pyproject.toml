@@ -13,8 +13,9 @@ keywords = ["asyncio", "task", "arq", "queue", "distributed"]
 [tool.poetry.dependencies]
 python = "^3.7"
 pydantic = "*"
-click = "*"
+asyncclick = "*"
 aioredis = "*"
+crontab = "*"
 
 [tool.poetry.dev-dependencies]
 taskipy = "*"
@@ -29,3 +30,6 @@ pytest-asyncio = "*"
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
+
+[tool.poetry.scripts]
+rearq = "rearq.cli:main"

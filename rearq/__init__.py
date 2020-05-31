@@ -26,7 +26,7 @@ logger = logging.getLogger("rearq")
 
 class ReArq:
     _redis: Optional[Redis] = None
-
+    _cron_tasks: Dict[str, 'CronTask'] = {}
     _function_map = {}
     _on_startup: Set[Callable] = {}
     _on_shutdown: Set[Callable] = {}
@@ -40,7 +40,16 @@ class ReArq:
             ssl: Union[bool, None, SSLContext] = None,
             sentinel: bool = False,
             sentinel_master: str = "master",
+            job_retry: int = 0,
+            max_jobs: int = 10,
+            keep_result_seconds: int = 3600,
+            job_timeout: int = 300
     ):
+        self.job_timeout = job_timeout
+        self.keep_result_seconds = keep_result_seconds
+        self.max_jobs = max_jobs
+        self.job_retry = job_retry
+
         self.sentinel = sentinel
         self.ssl = ssl
         self.sentinel_master = sentinel_master
@@ -88,14 +97,20 @@ class ReArq:
 
         function = func.__name__
         self._function_map[function] = func
+        defaults = dict(
+            function=function,
+            queue=queue_key_prefix + queue if queue else default_queue,
+            rearq=self,
+            job_retry=self.job_retry
+        )
         if cron:
-            CronTask.add_cron_task(function, cron)
+            CronTask.add_cron_task(function, CronTask(
+                **defaults,
+                cron=cron
+            ))
         else:
             return Task(
-                function=function,
-                queue=queue_key_prefix + queue if queue else default_queue,
-                delay_queue=delay_queue,
-                rearq=self
+                **defaults
             )
 
     def task(
