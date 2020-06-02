@@ -13,6 +13,7 @@ import async_timeout
 from aioredis import MultiExecError
 from aioredis import Redis
 from aioredis.commands import MultiExec
+from aioredis.errors import BusyGroupError, PipelineError
 from crontab import CronTab
 from pydantic import ValidationError
 
@@ -34,14 +35,16 @@ class Worker:
     _main_task: Optional[asyncio.Task] = None
     _function_map = {}
 
-    def __init__(self, rearq, queues: Optional[List[str]] = None, ):
+    def __init__(self, rearq, queues: Optional[List[str]] = None, group_name='default', consumer_name='default'):
+        self.consumer_name = consumer_name
+        self.group_name = group_name
         self.job_timeout = rearq.job_timeout
         self.keep_result_seconds = rearq.keep_result_seconds
         self.max_jobs = rearq.max_jobs
         self.rearq = rearq
         self.queues = [default_queue] if not queues else [f'{queue_key_prefix}:{queue}' for queue in queues]
         self.loop = asyncio.get_event_loop()
-        self.latest_ids = ['0-0' for _ in range(len(self.queues))]
+        self.latest_ids = ['>' for _ in range(len(self.queues))]
         self.sem = asyncio.BoundedSemaphore(self.max_jobs)
         self.queue_read_limit = max(self.max_jobs * 5, 100)
         self.tasks: List[asyncio.Task[Any]] = []
@@ -66,14 +69,25 @@ class Worker:
             f'db_keys={key_count}'
         )
 
+    async def _xgroup_create(self):
+        p = self._redis.pipeline()
+        for queue in self.queues:
+            p.xgroup_create(queue, self.group_name, latest_id='>', mkstream=True)
+        try:
+            return await p.execute()
+        except PipelineError:
+            pass
+
     async def _main(self) -> None:
         logger.info('Start worker success')
         await self.log_redis_info()
         await self.rearq.startup()
-
+        await self._xgroup_create()
         while True:
             async with self.sem:
-                msgs = await self._redis.xread(self.queues, count=self.queue_read_limit, latest_ids=self.latest_ids)
+                msgs = await self._redis.xread_group(self.group_name, self.consumer_name, self.queues,
+                                                     count=self.queue_read_limit,
+                                                     latest_ids=self.latest_ids)
                 for msg in msgs:
                     await self.sem.acquire()
                     queue, msg_id, job = msg
@@ -86,6 +100,7 @@ class Worker:
                     _, _, ongoing_exists = await p.execute()
                     if ongoing_exists:
                         logger.debug('job %s already running elsewhere', job_id)
+                        await self._redis.xack(queue, self.group_name, msg_id)
                         continue
                     tr = self._redis.multi_exec()
                     tr.setex(in_progress_key, self.in_progress_timeout, b'1')
@@ -96,12 +111,12 @@ class Worker:
                         logger.debug('multi-exec error, job %s already started elsewhere', job_id)
                         await asyncio.gather(*tr._results, return_exceptions=True)
                     else:
-                        task = self.loop.create_task(self.run_job(job_id))
+                        task = self.loop.create_task(self.run_job(queue, msg_id, job_id))
                         task.add_done_callback(lambda _: self.sem.release())
                         self.tasks.append(task)
             await asyncio.gather(*self.tasks)
 
-    async def run_job(self, job_id: str):
+    async def run_job(self, queue: str, msg_id: str, job_id: str):
         p = self._redis.pipeline()
         p.get(job_key_prefix + job_id)
         p.incr(retry_key_prefix + job_id)
@@ -114,6 +129,7 @@ class Worker:
                                    start_time=now, finish_time=now)
         if not job_data:
             logger.warning(f'job {job_id} expired')
+            await self._redis.xack(queue, self.group_name, msg_id)
             return asyncio.shield(abort_job)
         try:
             job = JobDef.parse_raw(job_data.encode())
