@@ -1,14 +1,14 @@
 import asyncio
-from datetime import datetime
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
-from typing import Any, Optional, Tuple, Dict, Callable
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 from crontab import CronTab
 from pydantic import BaseModel
 
-from . import job_key_prefix, result_key_prefix, in_progress_key_prefix
+from . import in_progress_key_prefix, job_key_prefix, result_key_prefix
 from .exceptions import SerializationError
 from .utils import poll, timestamp_ms_now, to_ms_timestamp
 
@@ -45,8 +45,8 @@ class JobDef(BaseModel):
 class JobResult(JobDef):
     success: bool
     result: Any
-    start_time: datetime
-    finish_time: datetime
+    start_ms: int
+    finish_ms: int
     job_id: Optional[str] = None
 
 
@@ -56,10 +56,7 @@ class Job:
     """
 
     def __init__(
-            self,
-            redis,
-            job_id: str,
-            queue_name: str,
+        self, redis, job_id: str, queue_name: str,
     ):
         self.queue_name = queue_name
         self.job_id = job_id
@@ -131,7 +128,9 @@ class Job:
 class CronJob(Job):
     _next_run: Optional[datetime] = None
 
-    def __init__(self, redis, job_id: str, queue_name: str, cron: CronTab, run_at_startup: bool = False, ):
+    def __init__(
+        self, redis, job_id: str, queue_name: str, cron: CronTab, run_at_startup: bool = False,
+    ):
         super().__init__(redis, job_id, queue_name)
         self.run_at_startup = run_at_startup
         self.cron = cron
@@ -140,4 +139,4 @@ class CronJob(Job):
         self._next_run = to_ms_timestamp(self.cron.next(default_utc=True))
 
     def __repr__(self) -> str:
-        return '<CronJob {}>'.format(' '.join(f'{k}={v}' for k, v in self.__dict__.items()))
+        return "<CronJob {}>".format(" ".join(f"{k}={v}" for k, v in self.__dict__.items()))

@@ -9,6 +9,10 @@ homepage = "https://github.com/long2ice/rearq.git"
 repository = "https://github.com/long2ice/rearq.git"
 documentation = "https://github.com/long2ice/rearq/blob/master/README.md"
 keywords = ["asyncio", "task", "arq", "queue", "distributed"]
+packages = [
+    { include = "rearq" }
+]
+include = ["CHANGELOG.md", "LICENSE", "README.md"]
 
 [tool.poetry.dependencies]
 python = "^3.7"

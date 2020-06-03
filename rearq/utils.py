@@ -1,7 +1,7 @@
 import asyncio
 import time
 from datetime import datetime, timedelta
-from typing import AsyncGenerator, Union, Sequence, Any, Dict
+from typing import Any, AsyncGenerator, Dict, Sequence, Union
 
 from pydantic.utils import truncate
 
@@ -54,11 +54,11 @@ async def poll(step: float = 0.5) -> AsyncGenerator[float, None]:
 
 
 def args_to_string(args: Sequence[Any], kwargs: Dict[str, Any]) -> str:
-    arguments = ''
+    arguments = ""
     if args:
-        arguments = ', '.join(map(repr, args))
+        arguments = ", ".join(map(repr, args))
     if kwargs:
         if arguments:
-            arguments += ', '
-        arguments += ', '.join(f'{k}={v!r}' for k, v in sorted(kwargs.items()))
+            arguments += ", "
+        arguments += ", ".join(f"{k}={v!r}" for k, v in sorted(kwargs.items()))
     return truncate(arguments, max_len=250)

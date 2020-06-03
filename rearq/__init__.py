@@ -3,9 +3,7 @@ import functools
 import logging
 from functools import wraps
 from ssl import SSLContext
-from typing import Any, Callable, Dict, Optional, Tuple, Union
-from typing import List
-from typing import Set
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import aioredis
 from aioredis import Redis
@@ -13,9 +11,17 @@ from crontab import CronTab
 
 from rearq.exceptions import ConfigurationError, UsageError
 from rearq.utils import timestamp_ms_now, to_ms_timestamp
-from .constants import queue_key_prefix, default_queue, delay_queue, in_progress_key_prefix, result_key_prefix, \
-    job_key_prefix, retry_key_prefix
-from .task import Task, CronTask
+
+from .constants import (
+    default_queue,
+    delay_queue,
+    in_progress_key_prefix,
+    job_key_prefix,
+    queue_key_prefix,
+    result_key_prefix,
+    retry_key_prefix,
+)
+from .task import CronTask, Task
 from .utils import timestamp_ms_now, to_ms_timestamp
 
 Serializer = Callable[[Dict[str, Any]], bytes]
@@ -26,24 +32,24 @@ logger = logging.getLogger("rearq")
 
 class ReArq:
     _redis: Optional[Redis] = None
-    _cron_tasks: Dict[str, 'CronTask'] = {}
+    _cron_tasks: Dict[str, "CronTask"] = {}
     _function_map = {}
     _on_startup: Set[Callable] = {}
     _on_shutdown: Set[Callable] = {}
 
     def __init__(
-            self,
-            redis_host: Union[str, List[Tuple[str, int]]] = "127.0.0.1",
-            redis_port: int = 6379,
-            redis_password: Optional[str] = None,
-            redis_db=0,
-            ssl: Union[bool, None, SSLContext] = None,
-            sentinel: bool = False,
-            sentinel_master: str = "master",
-            job_retry: int = 0,
-            max_jobs: int = 10,
-            keep_result_seconds: int = 3600,
-            job_timeout: int = 300
+        self,
+        redis_host: Union[str, List[Tuple[str, int]]] = "127.0.0.1",
+        redis_port: int = 6379,
+        redis_password: Optional[str] = None,
+        redis_db=0,
+        ssl: Union[bool, None, SSLContext] = None,
+        sentinel: bool = False,
+        sentinel_master: str = "master",
+        job_retry: int = 0,
+        max_jobs: int = 10,
+        keep_result_seconds: int = 3600,
+        job_timeout: int = 300,
     ):
         self.job_timeout = job_timeout
         self.keep_result_seconds = keep_result_seconds
@@ -90,7 +96,9 @@ class ReArq:
     def get_function_map(self):
         return self._function_map
 
-    def create_task(self, func: Callable, queue: Optional[str] = None, cron: Optional[CronTab] = None):
+    def create_task(
+        self, func: Callable, queue: Optional[str] = None, cron: Optional[CronTab] = None
+    ):
 
         if not callable(func):
             raise UsageError("Task must be Callable!")
@@ -101,21 +109,14 @@ class ReArq:
             function=function,
             queue=queue_key_prefix + queue if queue else default_queue,
             rearq=self,
-            job_retry=self.job_retry
+            job_retry=self.job_retry,
         )
         if cron:
-            CronTask.add_cron_task(function, CronTask(
-                **defaults,
-                cron=cron
-            ))
+            CronTask.add_cron_task(function, CronTask(**defaults, cron=cron))
         else:
-            return Task(
-                **defaults
-            )
+            return Task(**defaults)
 
-    def task(
-            self, queue: Optional[str] = None, cron: Optional[CronTab] = None
-    ):
+    def task(self, queue: Optional[str] = None, cron: Optional[CronTab] = None):
         def wrapper(func: Callable):
             return self.create_task(func, queue, cron)
 

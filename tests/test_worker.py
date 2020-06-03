@@ -1,7 +1,7 @@
 import pytest
 
 from conftest import rearq
-from rearq.worker import Worker, TimerWorker
+from rearq.worker import TimerWorker, Worker
 
 
 @pytest.mark.asyncio

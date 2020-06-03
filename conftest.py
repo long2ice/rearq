@@ -11,22 +11,22 @@ rearq = ReArq()
 
 @rearq.on_shutdown
 async def on_shutdown():
-    print('shutdown')
+    print("shutdown")
 
 
 @rearq.on_startup
 async def on_startup():
-    print('startup')
+    print("startup")
 
 
 @rearq.task()
-async def add(a, b):
+async def add(worker, a, b):
     return a + b
 
 
-# @rearq.task(cron=CronTab('*/5 * * * * * *'))
-# async def timer_add(a, b):
-#     return a + b
+@rearq.task(cron=CronTab("*/5 * * * * * *"))
+async def timer_add(worker):
+    return "timer"
 
 
 @pytest.fixture(scope="session")
