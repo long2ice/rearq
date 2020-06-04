@@ -3,8 +3,6 @@ import time
 from datetime import datetime, timedelta
 from typing import Any, AsyncGenerator, Dict, Sequence, Union
 
-from pydantic.utils import truncate
-
 
 def to_ms_timestamp(value: Union[None, int, float, timedelta, datetime]):
     """
@@ -61,4 +59,4 @@ def args_to_string(args: Sequence[Any], kwargs: Dict[str, Any]) -> str:
         if arguments:
             arguments += ", "
         arguments += ", ".join(f"{k}={v!r}" for k, v in sorted(kwargs.items()))
-    return truncate(arguments, max_len=250)
+    return arguments

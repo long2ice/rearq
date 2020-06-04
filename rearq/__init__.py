@@ -32,10 +32,9 @@ logger = logging.getLogger("rearq")
 
 class ReArq:
     _redis: Optional[Redis] = None
-    _cron_tasks: Dict[str, "CronTask"] = {}
     _function_map = {}
-    _on_startup: Set[Callable] = {}
-    _on_shutdown: Set[Callable] = {}
+    _on_startup: Set[Callable] = set()
+    _on_shutdown: Set[Callable] = set()
 
     def __init__(
         self,
@@ -46,7 +45,7 @@ class ReArq:
         ssl: Union[bool, None, SSLContext] = None,
         sentinel: bool = False,
         sentinel_master: str = "master",
-        job_retry: int = 0,
+        job_retry: int = 3,
         max_jobs: int = 10,
         keep_result_seconds: int = 3600,
         job_timeout: int = 300,
@@ -123,17 +122,19 @@ class ReArq:
         return wrapper
 
     def on_startup(self, func: Callable):
+        self._on_startup.add(func)
+
         @wraps(func)
         def wrapper(*args, **kwargs):
-            self._on_startup.add(func)
             return func(*args, **kwargs)
 
         return wrapper
 
     def on_shutdown(self, func: Callable):
+        self._on_shutdown.add(func)
+
         @wraps(func)
         def wrapper(*args, **kwargs):
-            self._on_shutdown.add(func)
             return func(*args, **kwargs)
 
         return wrapper

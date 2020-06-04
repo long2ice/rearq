@@ -1,11 +1,15 @@
 import asyncio
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple
+import signal
+import time
+from functools import partial
+from signal import Signals
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 from uuid import uuid4
 
 import async_timeout
 from aioredis import MultiExecError, Redis
-from aioredis.errors import PipelineError
+from aioredis.errors import BusyGroupError
 from pydantic import ValidationError
 
 from . import CronTask, timestamp_ms_now
@@ -14,12 +18,11 @@ from .constants import (
     delay_queue,
     in_progress_key_prefix,
     job_key_prefix,
-    queue_key_prefix,
     result_key_prefix,
     retry_key_prefix,
 )
 from .job import JobDef, JobResult
-from .utils import args_to_string, poll, to_ms_timestamp
+from .utils import args_to_string, poll
 
 Serializer = Callable[[Dict[str, Any]], bytes]
 Deserializer = Callable[[bytes], Dict[str, Any]]
@@ -34,26 +37,18 @@ class Worker:
     _function_map = {}
 
     def __init__(
-        self,
-        rearq,
-        queues: Optional[List[str]] = None,
-        group_name="default",
-        consumer_name="default",
+        self, rearq, queue: Optional[str] = None, group_name="default",
     ):
-        self.consumer_name = consumer_name
         self.group_name = group_name
         self.job_timeout = rearq.job_timeout
         self.keep_result_seconds = rearq.keep_result_seconds
         self.max_jobs = rearq.max_jobs
         self.rearq = rearq
-        self.queues = (
-            [default_queue] if not queues else [f"{queue_key_prefix}:{queue}" for queue in queues]
-        )
+        self.queue = queue or default_queue
         self.loop = asyncio.get_event_loop()
-        self.latest_ids = [">" for _ in range(len(self.queues))]
         self.sem = asyncio.BoundedSemaphore(self.max_jobs)
         self.queue_read_limit = max(self.max_jobs * 5, 100)
-        self.tasks: List[asyncio.Task[Any]] = []
+        self.tasks: Set[asyncio.Task[Any]] = set()
         self._redis = rearq.get_redis()
         self._function_map = rearq.get_function_map()
         self.jobs_complete = 0
@@ -61,6 +56,24 @@ class Worker:
         self.jobs_failed = 0
         self.job_retry = rearq.job_retry
         self.in_progress_timeout = self.job_timeout + 10
+        self._add_signal_handler(signal.SIGINT, self.handle_sig)
+        self._add_signal_handler(signal.SIGTERM, self.handle_sig)
+
+    def _add_signal_handler(self, signum: Signals, handler: Callable[[Signals], None]) -> None:
+        self.loop.add_signal_handler(signum, partial(handler, signum))
+
+    def handle_sig(self, signum: Signals) -> None:
+        sig = Signals(signum)
+        logger.info(
+            "shutdown on %s ◆ %d jobs complete ◆ %d failed ◆ %d retries ◆ %d ongoing to cancel",
+            sig.name,
+            self.jobs_complete,
+            self.jobs_failed,
+            self.jobs_retried,
+            len(self.tasks),
+        )
+        for t in asyncio.Task.all_tasks():
+            t.cancel()
 
     async def log_redis_info(self,) -> None:
         p = self._redis.pipeline()
@@ -75,28 +88,24 @@ class Worker:
             f"db_keys={key_count}"
         )
 
-    async def _xgroup_create(self):
-        p = self._redis.pipeline()
-        for queue in self.queues:
-            p.xgroup_create(queue, self.group_name, latest_id="$", mkstream=True)
-        try:
-            return await p.execute()
-        except PipelineError:
-            pass
-
     async def _main(self) -> None:
-        logger.info("Start worker success")
+        logger.info(f"Start worker success with queue: {self.queue}")
         await self.log_redis_info()
         await self.rearq.startup()
-        await self._xgroup_create()
+        try:
+            await self._redis.xgroup_create(
+                self.queue, self.group_name, latest_id="$", mkstream=True
+            )
+        except BusyGroupError:
+            pass
         while True:
             async with self.sem:
                 msgs = await self._redis.xread_group(
                     self.group_name,
-                    self.consumer_name,
-                    self.queues,
+                    time.time(),
+                    [self.queue],
                     count=self.queue_read_limit,
-                    latest_ids=self.latest_ids,
+                    latest_ids=[">"],
                 )
                 for msg in msgs:
                     await self.sem.acquire()
@@ -122,9 +131,13 @@ class Worker:
                         await asyncio.gather(*tr._results, return_exceptions=True)
                     else:
                         task = self.loop.create_task(self.run_job(queue, msg_id, job_id))
-                        task.add_done_callback(lambda _: self.sem.release())
-                        self.tasks.append(task)
+                        task.add_done_callback(self._task_done)
+                        self.tasks.add(task)
             await asyncio.gather(*self.tasks)
+
+    def _task_done(self, task):
+        self.sem.release()
+        self.tasks.remove(task)
 
     async def _xack(self, queue: str, msg_id: str):
         await self._redis.xack(queue, self.group_name, msg_id)
@@ -330,27 +343,41 @@ class Worker:
 
 class TimerWorker(Worker):
     async def _main(self) -> None:
-        logger.info("Start timer worker success")
+        logger.info(f"Start timer worker success with queue: {self.queue}")
         await self.log_redis_info()
         await self.rearq.startup()
-        await self.init_timer()
+
         async for _ in poll():
             await self._poll_iteration()
+            await self.run_cron()
 
-    async def init_timer(self):
+    async def run_cron(self):
         cron_tasks = CronTask.get_cron_tasks()
-        tasks = []
-        for task in cron_tasks.values():
-            tasks.append(
-                task.delay(
-                    job_id=uuid4().hex,
-                    countdown=task.cron.next(default_utc=True),
-                    job_retry=task.job_retry,
+        p = self._redis.pipeline()
+        execute = False
+        for function, task in cron_tasks.items():
+            if timestamp_ms_now() >= task.next_run:
+                execute = True
+                logger.info(f"{task.function}")
+                next_job_id = uuid4().hex
+                job_key = job_key_prefix + next_job_id
+                enqueue_ms = timestamp_ms_now()
+                p.psetex(
+                    job_key,
+                    task.expires_extra_ms,
+                    JobDef(
+                        function=function,
+                        args=None,
+                        kwargs=None,
+                        job_retry=self.job_retry,
+                        enqueue_ms=enqueue_ms,
+                        queue=task.queue,
+                        job_id=next_job_id,
+                    ).json(),
                 )
-            )
-        if tasks:
-            await asyncio.gather(*tasks)
-            logger.info(f"Success init timer {list(cron_tasks.values())}")
+                p.xadd(task.queue, {"job_id": next_job_id})
+                task.set_next()
+        execute and await p.execute()
 
     async def _poll_iteration(self):
         now = timestamp_ms_now()
@@ -366,27 +393,5 @@ class TimerWorker(Worker):
         for job in jobs:
             job_def = JobDef.parse_raw(job.encode())
             p.xadd(job_def.queue, {"job_id": job_def.job_id})
-
-            cron_task = CronTask.get_cron_tasks().get(job_def.function)
-            if cron_task:
-                logger.info(f"Timer trigger {cron_task}")
-                next_job_id = uuid4().hex
-                next_job = JobDef(
-                    function=job_def.function,
-                    args=job_def.args,
-                    kwargs=job_def.kwargs,
-                    job_retry=job_def.job_retry,
-                    enqueue_ms=timestamp_ms_now(),
-                    queue=job_def.queue,
-                    job_id=next_job_id,
-                )
-                defer = to_ms_timestamp(cron_task.cron.next(default_utc=True))
-                p.zadd(delay_queue, defer, next_job_id)
-                p.psetex(
-                    job_key_prefix + next_job_id,
-                    defer - job_def.enqueue_ms + cron_task.expires_extra_ms,
-                    next_job.json(),
-                )
-        if jobs_id:
-            p.zrem(delay_queue, *jobs_id)
-            await p.execute()
+        p.zrem(delay_queue, *jobs_id)
+        await p.execute()

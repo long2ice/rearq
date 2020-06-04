@@ -87,10 +87,15 @@ class Task:
 
 class CronTask(Task):
     _cron_tasks: Dict[str, "CronTask"] = {}
+    next_run: int
 
     def __init__(self, function: str, queue: str, rearq, job_retry: int, cron: CronTab):
         super().__init__(function, queue, rearq, job_retry)
         self.cron = cron
+        self.set_next()
+
+    def set_next(self):
+        self.next_run = to_ms_timestamp(self.cron.next(default_utc=True))
 
     @classmethod
     def add_cron_task(cls, function: str, cron_task: "CronTask"):

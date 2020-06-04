@@ -1,9 +1,8 @@
 import asyncio
 import logging
-from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
 from crontab import CronTab
 from pydantic import BaseModel
@@ -91,9 +90,7 @@ class Job:
         if not info:
             v = await self.redis.get(job_key_prefix + self.job_id, encoding=None)
             if v:
-                info = JobDef.parse_obj(v)
-        if info:
-            info.score = await self.redis.zscore(self.queue_name, self.job_id)
+                info = JobDef.parse_raw(v)
         return info
 
     async def result_info(self) -> Optional[JobResult]:

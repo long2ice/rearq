@@ -1,4 +1,4 @@
-checkfiles = rearq/ tests/ conftest.py
+checkfiles = rearq/ tests/ examples/ conftest.py
 black_opts = -l 100 -t py38
 py_warn = PYTHONDEVMODE=1
 
@@ -10,7 +10,6 @@ help:
 	@echo  "    up			Updates dev/test dependencies"
 	@echo  "    deps		Ensure dev/test dependencies are installed"
 	@echo  "    check		Checks that build is sane"
-	@echo  "    lint		Reports all linter violations"
 	@echo  "    test		Runs all tests"
 	@echo  "    style		Auto-formats the code"
 
@@ -35,12 +34,11 @@ endif
 	python setup.py check -mrs
 
 test: deps
-	$(py_warn) TEST_DB=sqlite://:memory: py.test
+	$(py_warn) py.test
+
+build: deps
+	@poetry build
 
 publish: deps
-	rm -fR dist/
-	python setup.py sdist
-	twine upload dist/*
+	@poetry publish --build
 
-ci:
-	@act -P ubuntu-latest=nektos/act-environments-ubuntu:18.04 -b
