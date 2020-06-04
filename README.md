@@ -1,5 +1,7 @@
 # Rearq
 
+![pypi](https://img.shields.io/pypi/v/aericrearqh.svg?style=flat)
+
 ## Introduction
 
 Rearq is a distributed task queue with asyncio and redis, which rewrite from [arq](https://github.com/samuelcolvin/arq) and make improvement.
@@ -11,10 +13,13 @@ Just install from pypi:
 ```shell
 > pip install rearq
 ```
+
 or install latest code from github:
+
 ```shell
-pip install -e git+https://github.com/long2ice/rearq.git
+> pip install -e git+https://github.com/long2ice/rearq.git
 ```
+
 ## Quick Start
 
 ### Task Definition
