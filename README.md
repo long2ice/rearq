@@ -1,6 +1,6 @@
 # Rearq
 
-![pypi](https://img.shields.io/pypi/v/aericrearqh.svg?style=flat)
+![pypi](https://img.shields.io/pypi/v/rearq.svg?style=flat)
 
 ## Introduction
 
