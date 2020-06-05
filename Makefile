@@ -42,3 +42,6 @@ build: deps
 publish: deps
 	@poetry publish --build
 
+docs: deps
+	@pip install -r docs/requirements.txt
+	@sphinx-build docs/ docs/_build

@@ -12,7 +12,7 @@ keywords = ["asyncio", "task", "arq", "queue", "distributed"]
 packages = [
     { include = "rearq" }
 ]
-include = ["CHANGELOG.md", "LICENSE", "README.md"]
+include = ["LICENSE", "README.md"]
 
 [tool.poetry.dependencies]
 python = "^3.7"

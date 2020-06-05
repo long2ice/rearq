@@ -1,6 +1,6 @@
 from crontab import CronTab
 
-from examples import rearq
+from examples.rearq import rearq
 from rearq.worker import Worker
 
 
