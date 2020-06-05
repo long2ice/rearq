@@ -14,7 +14,6 @@ import os
 import sys
 
 from rearq.version import VERSION
-from recommonmark.parser import CommonMarkParser
 
 sys.path.insert(0, os.path.abspath('../..'))
 
@@ -38,10 +37,6 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
 ]
-source_parsers = {
-    '.md': CommonMarkParser,
-}
-source_suffix = ['.rst', '.md']
 
 autoclass_content = 'both'
 autodoc_member_order = 'bysource'
