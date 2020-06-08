@@ -96,7 +96,10 @@ class ReArq:
         return self._function_map
 
     def create_task(
-        self, func: Callable, queue: Optional[str] = None, cron: Optional[CronTab] = None
+        self,
+        func: Callable,
+        queue: Optional[str] = None,
+        cron: Optional[str] = None
     ):
 
         if not callable(func):
@@ -115,7 +118,7 @@ class ReArq:
         else:
             return Task(**defaults)
 
-    def task(self, queue: Optional[str] = None, cron: Optional[CronTab] = None):
+    def task(self, queue: Optional[str] = None, cron: Optional[str] = None):
         def wrapper(func: Callable):
             return self.create_task(func, queue, cron)
 

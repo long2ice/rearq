@@ -1,7 +1,6 @@
 import asyncio
 
 import pytest
-from crontab import CronTab
 
 from rearq import ReArq
 from rearq.log import init_logging
@@ -24,7 +23,7 @@ async def add(worker, a, b):
     return a + b
 
 
-@rearq.task(cron=CronTab("*/5 * * * * * *"))
+@rearq.task(cron="*/5 * * * * * *")
 async def timer_add(worker):
     return "timer"
 

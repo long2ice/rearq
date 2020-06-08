@@ -352,6 +352,10 @@ class TimerWorker(Worker):
             await self.run_cron()
 
     async def run_cron(self):
+        """
+        run cron task
+        :return:
+        """
         cron_tasks = CronTask.get_cron_tasks()
         p = self._redis.pipeline()
         execute = False

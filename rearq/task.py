@@ -89,9 +89,9 @@ class CronTask(Task):
     _cron_tasks: Dict[str, "CronTask"] = {}
     next_run: int
 
-    def __init__(self, function: str, queue: str, rearq, job_retry: int, cron: CronTab):
+    def __init__(self, function: str, queue: str, rearq, job_retry: int, cron: str):
         super().__init__(function, queue, rearq, job_retry)
-        self.cron = cron
+        self.cron = CronTab(cron)
         self.set_next()
 
     def set_next(self):
