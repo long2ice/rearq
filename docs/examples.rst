@@ -4,7 +4,7 @@ Examples
 
 Init Rearq
 ==========
-.. literalinclude::  ../examples/rearq.py
+.. literalinclude::  ../examples/__init__.py
 
 Register Task
 =============
