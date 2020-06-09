@@ -72,9 +72,29 @@ If you have timeing task, run another command also:
 2020-06-04 15:37:44 - rearq.worker:84 - INFO - redis_version=6.0.1 mem_usage=1.47M clients_connected=25 db_keys=5
 ```
 
+### Integration in FastAPI
+
+```python
+app = FastAPI()
+
+@app.on_event("startup")
+async def startup() -> None:
+    await rearq.init()
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    await rearq.close()
+
+# then run task in view
+@app.get("/test")
+async def test():
+    job = await add.delay(args=(1,2))
+    return job.info()
+```
+
 ## Why not arq
 
-Thanks great work of `arq`, but that project is not so active now and lack of maintenance. On the other hand, I don't like some solution of `arq` and it's api, so I open this project and aims to work better.
+Thanks great work of `arq`, but that project is not so active now and lack of maintenance. On the other hand, I don't like some solution of `arq` and its api, so I open this project and aims to work better.
 
 ## What's the differences
 
