@@ -43,7 +43,7 @@ async def on_startup(r):
 async def add(worker, a, b):
     return a + b
 
-@rearq.task(cron=CronTab("*/5 * * * * * *"))
+@rearq.task(cron="*/5 * * * * * *") # run task per 5 seconds
 async def timer(worker):
     return "timer"
 ```
@@ -111,6 +111,10 @@ await arq.enqueue_job('add', 1, 2)
 ### Queue implementation
 
 Arq use redis `zset` to make delay queue and timing queue, and Rearq use `zset` and `stream` with `ack`.
+
+## Documentation
+
+See documentation in [https://rearq.long2ice.cn](https://rearq.long2ice.cn).
 
 ## ThanksTo
 
