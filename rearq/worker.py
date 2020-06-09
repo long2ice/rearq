@@ -34,7 +34,7 @@ no_result = object()
 class Worker:
     _redis: Redis
     _main_task: Optional[asyncio.Task] = None
-    _function_map = {}
+    _task_map = {}
 
     def __init__(
         self, rearq, queue: Optional[str] = None, group_name="default",
@@ -50,7 +50,7 @@ class Worker:
         self.queue_read_limit = max(self.max_jobs * 5, 100)
         self.tasks: Set[asyncio.Task[Any]] = set()
         self._redis = rearq.get_redis()
-        self._function_map = rearq.get_function_map()
+        self._task_map = rearq.get_task_map()
         self.jobs_complete = 0
         self.jobs_retried = 0
         self.jobs_failed = 0
@@ -113,7 +113,7 @@ class Worker:
                     job_id = job.get("job_id")
                     in_progress_key = in_progress_key_prefix + job_id
                     p = self._redis.pipeline()
-                    p.unwatch(),
+                    p.unwatch()
                     p.watch(in_progress_key)
                     p.exists(in_progress_key)
                     _, _, ongoing_exists = await p.execute()
@@ -171,14 +171,14 @@ class Worker:
         except ValidationError:
             logger.exception(f"parse job {job_id} failed")
             return await asyncio.shield(self.abort_job(**abort_job_data))
-        fun = self._function_map.get(job_def.function)
-        if not fun:
-            logger.warning(f"job {job_id}, function {fun} not found")
+        task = self._task_map.get(job_def.function)
+        if not task:
+            logger.warning(f"job {job_id}, task {job_def.function} not found")
             return await asyncio.shield(
                 self.abort_job(
                     job_id=job_id,
                     function=job_def.function,
-                    msg=f"function {job_def.function} not found",
+                    msg=f"task {job_def.function} not found",
                     args=job_def.args,
                     kwargs=job_def.kwargs,
                     job_retry=job_def.job_retry,
@@ -221,9 +221,7 @@ class Worker:
         )
         try:
             async with async_timeout.timeout(self.job_timeout):
-                result = await self._function_map.get(job_def.function)(
-                    self, *(job_def.args or []), **(job_def.kwargs or {})
-                )
+                result = await task.function(task, *(job_def.args or []), **(job_def.kwargs or {}))
         except Exception as e:
             success = False
             finish = False
@@ -300,15 +298,13 @@ class Worker:
             enqueue_ms=enqueue_ms,
             queue=queue,
         )
-        await self._redis.unwatch()
-        tr = self._redis.multi_exec()
-        tr.delete(
+        p = self._redis.pipeline()
+        p.delete(
             retry_key_prefix + job_id, in_progress_key_prefix + job_id, job_key_prefix + job_id
         )
-        tr.zrem(queue, job_id)
         if self.keep_result_seconds > 0:
-            tr.setex(result_key_prefix + job_id, self.keep_result_seconds, job_result.json())
-        await tr.execute()
+            p.setex(result_key_prefix + job_id, self.keep_result_seconds, job_result.json())
+        await p.execute()
 
     def run(self):
         """
@@ -362,7 +358,7 @@ class TimerWorker(Worker):
         for function, task in cron_tasks.items():
             if timestamp_ms_now() >= task.next_run:
                 execute = True
-                logger.info(f"{task.function}")
+                logger.info(f"{task.function.__name__}()")
                 next_job_id = uuid4().hex
                 job_key = job_key_prefix + next_job_id
                 enqueue_ms = timestamp_ms_now()

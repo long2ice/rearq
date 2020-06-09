@@ -32,7 +32,7 @@ logger = logging.getLogger("rearq")
 
 class ReArq:
     _redis: Optional[Redis] = None
-    _function_map = {}
+    _task_map: Dict[str, Task] = {}
     _on_startup: Set[Callable] = set()
     _on_shutdown: Set[Callable] = set()
 
@@ -92,31 +92,28 @@ class ReArq:
             raise UsageError("You must call .init() first!")
         return self._redis
 
-    def get_function_map(self):
-        return self._function_map
+    def get_task_map(self) -> Dict[str, Task]:
+        return self._task_map
 
-    def create_task(
-        self,
-        func: Callable,
-        queue: Optional[str] = None,
-        cron: Optional[str] = None
-    ):
+    def create_task(self, func: Callable, queue: Optional[str] = None, cron: Optional[str] = None):
 
         if not callable(func):
             raise UsageError("Task must be Callable!")
 
         function = func.__name__
-        self._function_map[function] = func
         defaults = dict(
-            function=function,
+            function=func,
             queue=queue_key_prefix + queue if queue else default_queue,
             rearq=self,
             job_retry=self.job_retry,
         )
         if cron:
-            CronTask.add_cron_task(function, CronTask(**defaults, cron=cron))
+            t = CronTask(**defaults, cron=cron)
+            CronTask.add_cron_task(function, t)
         else:
-            return Task(**defaults)
+            t = Task(**defaults)
+        self._task_map[function] = t
+        return t
 
     def task(self, queue: Optional[str] = None, cron: Optional[str] = None):
         def wrapper(func: Callable):
@@ -145,14 +142,14 @@ class ReArq:
     async def shutdown(self):
         tasks = []
         for fun in self._on_shutdown:
-            tasks.append(fun(self))
+            tasks.append(fun())
         if tasks:
             await asyncio.gather(*tasks)
 
     async def startup(self):
         tasks = []
         for fun in self._on_startup:
-            tasks.append(fun(self))
+            tasks.append(fun())
         if tasks:
             await asyncio.gather(*tasks)
 

@@ -30,21 +30,21 @@ rearq = ReArq()
 
 
 @rearq.on_shutdown
-async def on_shutdown(r):
+async def on_shutdown():
     print("shutdown")
 
 
 @rearq.on_startup
-async def on_startup(r):
+async def on_startup():
     print("startup")
 
 
 @rearq.task(queue = "myqueue")
-async def add(worker, a, b):
+async def add(self, a, b):
     return a + b
 
 @rearq.task(cron="*/5 * * * * * *") # run task per 5 seconds
-async def timer(worker):
+async def timer(self):
     return "timer"
 ```
 
@@ -108,7 +108,7 @@ Rearq:
 rearq = Rearq()
 
 @rearq.task()
-async def add(worker, a, b):
+async def add(self, a, b):
     return a + b
 
 job = await add.delay(args=(1, 2))

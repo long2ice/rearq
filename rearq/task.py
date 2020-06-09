@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import logging
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 from uuid import uuid4
 
 from aioredis import MultiExecError
@@ -18,7 +18,7 @@ logger = logging.getLogger("arq.jobs")
 class Task:
     expires_extra_ms = 86_400_000
 
-    def __init__(self, function: str, queue: str, rearq, job_retry: int):
+    def __init__(self, function: Callable, queue: str, rearq, job_retry: int):
 
         self.job_retry = job_retry
         self.queue = queue
@@ -61,7 +61,7 @@ class Task:
             job_key,
             expires_ms,
             JobDef(
-                function=self.function,
+                function=self.function.__name__,
                 args=args,
                 kwargs=kwargs,
                 job_retry=job_retry or self.job_retry,
@@ -89,7 +89,7 @@ class CronTask(Task):
     _cron_tasks: Dict[str, "CronTask"] = {}
     next_run: int
 
-    def __init__(self, function: str, queue: str, rearq, job_retry: int, cron: str):
+    def __init__(self, function: Callable, queue: str, rearq, job_retry: int, cron: str):
         super().__init__(function, queue, rearq, job_retry)
         self.cron = CronTab(cron)
         self.set_next()

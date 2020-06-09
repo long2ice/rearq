@@ -1,12 +1,12 @@
 from examples import rearq
-from rearq.worker import Worker
+from rearq import Task
 
 
 @rearq.task()
-async def add(worker: Worker, a, b):
+async def add(self: Task, a, b):
     return a + b
 
 
 @rearq.task(cron="*/5 * * * * * *")
-async def timer_add(worker: Worker):
+async def timer_add(self: Task):
     return "timer"
