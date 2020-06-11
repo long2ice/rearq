@@ -23,18 +23,17 @@ async def add(self: Task, a, b):
     return a + b
 
 
+@rearq.task()
+async def sleep(self: Task, time: float):
+    return await asyncio.sleep(time)
+
+
 @rearq.task(cron="*/5 * * * * * *")
 async def timer_add(self: Task):
     return "timer"
 
 
-@pytest.fixture(scope="session")
-def loop():
-    loop = asyncio.get_event_loop()
-    return loop
-
-
 @pytest.fixture(scope="session", autouse=True)
-def initialize_tests(loop, request):
+async def initialize_tests():
     init_logging(True)
-    loop.run_until_complete(rearq.init())
+    await rearq.init()

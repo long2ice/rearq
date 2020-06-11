@@ -22,6 +22,7 @@ from .constants import (
     retry_key_prefix,
 )
 from .job import JobDef, JobResult
+from .task import check_pending_msgs
 from .utils import args_to_string, poll
 
 Serializer = Callable[[Dict[str, Any]], bytes]
@@ -58,6 +59,7 @@ class Worker:
         self.in_progress_timeout = self.job_timeout + 10
         self._add_signal_handler(signal.SIGINT, self.handle_sig)
         self._add_signal_handler(signal.SIGTERM, self.handle_sig)
+        self.rearq.create_task(check_pending_msgs, queue, "* * * * *")
 
     def _add_signal_handler(self, signum: Signals, handler: Callable[[Signals], None]) -> None:
         self.loop.add_signal_handler(signum, partial(handler, signum))
@@ -98,11 +100,13 @@ class Worker:
             )
         except BusyGroupError:
             pass
+        length = len(await self._redis.xinfo_groups(self.queue))
+        self.consumer_name = f"{self.group_name}-{length}"
         while True:
             async with self.sem:
                 msgs = await self._redis.xread_group(
                     self.group_name,
-                    time.time(),
+                    self.consumer_name,
                     [self.queue],
                     count=self.queue_read_limit,
                     latest_ids=[">"],
@@ -221,7 +225,14 @@ class Worker:
         )
         try:
             async with async_timeout.timeout(self.job_timeout):
-                result = await task.function(task, *(job_def.args or []), **(job_def.kwargs or {}))
+                if job_def.function == check_pending_msgs.__name__:
+                    result = await task.function(
+                        task, self.queue, self.group_name, self.consumer_name, self.job_timeout
+                    )
+                else:
+                    result = await task.function(
+                        task, *(job_def.args or []), **(job_def.kwargs or {})
+                    )
         except Exception as e:
             success = False
             finish = False
@@ -234,7 +245,6 @@ class Worker:
             finish = True
             self.jobs_complete += 1
             await self._xack(queue, msg_id)
-        result_data = None
         if result is not no_result and self.keep_result_seconds > 0:
             result_data = JobResult(
                 success=success,
@@ -250,9 +260,11 @@ class Worker:
                 queue=job_def.queue,
             )
 
-        await asyncio.shield(
-            self.finish_job(job_id, finish, result_data.json().encode(), self.keep_result_seconds)
-        )
+            await asyncio.shield(
+                self.finish_job(
+                    job_id, finish, result_data.json().encode(), self.keep_result_seconds
+                )
+            )
 
     async def finish_job(
         self,

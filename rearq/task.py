@@ -85,6 +85,27 @@ class Task:
         return Job(redis, job_id, self.queue,)
 
 
+async def check_pending_msgs(
+    self: Task, queue: str, group_name: str, consumer_name: str, timeout: int
+):
+    """
+    check pending messages
+    :return:
+    """
+    rearq = self.rearq
+    redis = rearq.get_redis()
+    pending_msgs = await redis.xpending(self.queue, group_name, "-", "+", 10)
+    p = redis.pipeline()
+    execute = False
+    for msg in pending_msgs:
+        msg_id, _, idle_time, times = msg
+        if int(idle_time / 1000) > timeout * 2:
+            execute = True
+            p.xclaim(queue, group_name, consumer_name, min_idle_time=1000, id=msg_id)
+    if execute:
+        return await p.execute()
+
+
 class CronTask(Task):
     _cron_tasks: Dict[str, "CronTask"] = {}
     next_run: int

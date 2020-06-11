@@ -7,7 +7,6 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import aioredis
 from aioredis import Redis
-from crontab import CronTab
 
 from rearq.exceptions import ConfigurationError, UsageError
 from rearq.utils import timestamp_ms_now, to_ms_timestamp
@@ -87,7 +86,7 @@ class ReArq:
         )
         self._redis = Redis(pool)
 
-    def get_redis(self):
+    def get_redis(self) -> Redis:
         if not self._redis:
             raise UsageError("You must call .init() first!")
         return self._redis
