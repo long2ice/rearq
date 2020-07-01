@@ -121,8 +121,6 @@ class Worker:
                     job_id = job.get("job_id")
                     in_progress_key = in_progress_key_prefix + job_id
                     p = self._redis.pipeline()
-                    p.unwatch()
-                    p.watch(in_progress_key)
                     p.exists(in_progress_key)
                     _, _, ongoing_exists = await p.execute()
                     if ongoing_exists:
@@ -277,15 +275,14 @@ class Worker:
         result_data: Optional[bytes],
         result_timeout_s: Optional[float],
     ) -> None:
-        await self._redis.unwatch()
-        tr = self._redis.multi_exec()
+        p = self._redis.pipeline()
         delete_keys = [in_progress_key_prefix + job_id]
         if finish:
             if result_data:
-                tr.setex(result_key_prefix + job_id, result_timeout_s, result_data)
+                p.setex(result_key_prefix + job_id, result_timeout_s, result_data)
             delete_keys += [retry_key_prefix + job_id, job_key_prefix + job_id]
-            tr.delete(*delete_keys)
-            await tr.execute()
+            p.delete(*delete_keys)
+            await p.execute()
 
     async def abort_job(
         self,

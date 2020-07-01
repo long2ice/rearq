@@ -48,8 +48,6 @@ class Task:
         job_key = job_key_prefix + job_id
         redis = self.rearq.get_redis()
         pipe = redis.pipeline()
-        pipe.unwatch()
-        pipe.watch(job_key)
         job_exists = pipe.exists(job_key)
         job_result_exists = pipe.exists(result_key_prefix + job_id)
         await pipe.execute()
