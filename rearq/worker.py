@@ -18,6 +18,7 @@ from .constants import (
     delay_queue,
     in_progress_key_prefix,
     job_key_prefix,
+    queue_key_prefix,
     result_key_prefix,
     retry_key_prefix,
 )
@@ -45,7 +46,10 @@ class Worker:
         self.keep_result_seconds = rearq.keep_result_seconds
         self.max_jobs = rearq.max_jobs
         self.rearq = rearq
-        self.queue = queue or default_queue
+        if queue:
+            self.queue = queue_key_prefix + queue
+        else:
+            self.queue = default_queue
         self.loop = asyncio.get_event_loop()
         self.sem = asyncio.BoundedSemaphore(self.max_jobs)
         self.queue_read_limit = max(self.max_jobs * 5, 100)
