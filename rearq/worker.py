@@ -237,7 +237,7 @@ class Worker:
             success = False
             finish = False
             finished_ms = 0
-            logger.error(f"Run task error: {e}")
+            logger.error(f"Run task error, function: {job_def.function}, e: {e}")
         else:
             success = True
             finished_ms = timestamp_ms_now()
