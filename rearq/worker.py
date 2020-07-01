@@ -120,9 +120,7 @@ class Worker:
                     queue, msg_id, job = msg
                     job_id = job.get("job_id")
                     in_progress_key = in_progress_key_prefix + job_id
-                    p = self._redis.pipeline()
-                    p.exists(in_progress_key)
-                    _, _, ongoing_exists = await p.execute()
+                    ongoing_exists = await self._redis.exists(in_progress_key)
                     if ongoing_exists:
                         logger.debug("job %s already running elsewhere", job_id)
                         await self._xack(queue, msg_id)
