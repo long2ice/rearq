@@ -48,10 +48,10 @@ class Task:
         job_key = job_key_prefix + job_id
         redis = self.rearq.get_redis()
         pipe = redis.pipeline()
-        job_exists = pipe.exists(job_key)
-        job_result_exists = pipe.exists(result_key_prefix + job_id)
-        await pipe.execute()
-        if await job_exists or await job_result_exists:
+        pipe.exists(job_key)
+        pipe.exists(result_key_prefix + job_id)
+        job_exists, job_result_exists = await pipe.execute()
+        if job_exists or job_result_exists:
             return None
 
         p = redis.pipeline()  # type:MultiExec
