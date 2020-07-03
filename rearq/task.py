@@ -54,8 +54,8 @@ class Task:
         if await job_exists or await job_result_exists:
             return None
 
-        tr = redis.multi_exec()  # type:MultiExec
-        tr.psetex(
+        p = redis.pipeline()  # type:MultiExec
+        p.psetex(
             job_key,
             expires_ms,
             JobDef(
@@ -70,16 +70,12 @@ class Task:
         )
 
         if not eta and not countdown:
-            tr.xadd(self.queue, {"job_id": job_id})
+            p.xadd(self.queue, {"job_id": job_id})
         else:
-            tr.zadd(delay_queue, defer_ts, job_id)
+            p.zadd(delay_queue, defer_ts, job_id)
 
-        try:
-            await tr.execute()
-        except MultiExecError as e:
-            logger.warning(f"MultiExecError: {e}")
-            await asyncio.gather(*tr._results, return_exceptions=True)
-            return None
+        await p.execute()
+
         return Job(redis, job_id, self.queue,)
 
 
