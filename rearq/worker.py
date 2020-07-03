@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import signal
-import time
+import traceback
 from functools import partial
 from signal import Signals
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
@@ -237,7 +237,7 @@ class Worker:
             success = False
             finish = False
             finished_ms = 0
-            logger.error(f"Run task error, function: {job_def.function}, e: {e}")
+            logger.error(f"Run task error, function: {job_def.function}, e: {traceback.print_exc()}")
         else:
             success = True
             finished_ms = timestamp_ms_now()
