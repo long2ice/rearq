@@ -27,12 +27,14 @@ class Task:
         self,
         args: Optional[Tuple[Any, ...]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
-        job_id: str = uuid4().hex,
+        job_id: str = None,
         countdown: Union[float, datetime.timedelta] = 0,
         eta: Optional[datetime.datetime] = None,
         expires: Optional[Union[float, datetime.datetime]] = None,
         job_retry: int = 0,
     ):
+        if not job_id:
+            job_id = uuid4().hex
         if countdown:
             defer_ts = to_ms_timestamp(countdown)
         elif eta:
