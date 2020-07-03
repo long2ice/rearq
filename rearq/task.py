@@ -1,10 +1,8 @@
-import asyncio
 import datetime
 import logging
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 from uuid import uuid4
 
-from aioredis import MultiExecError
 from aioredis.commands import MultiExec
 from crontab import CronTab
 
@@ -52,7 +50,10 @@ class Task:
         pipe.exists(result_key_prefix + job_id)
         job_exists, job_result_exists = await pipe.execute()
         if job_exists or job_result_exists:
-            return None
+            logger.warning(
+                f"Job {job_id} exists, job_exists={job_exists}, job_result_exists={job_result_exists}"
+            )
+            return Job(redis, job_id, self.queue,)
 
         p = redis.pipeline()  # type:MultiExec
         p.psetex(
