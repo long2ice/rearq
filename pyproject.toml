@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rearq"
-version = "0.1.1"
+version = "0.1.3"
 description = "Rewrite arq and make improvement."
 authors = ["long2ice <long2ice@gmail.com>"]
 license = "MIT"
