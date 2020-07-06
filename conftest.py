@@ -33,7 +33,13 @@ async def timer_add(self: Task):
     return "timer"
 
 
+@pytest.fixture(scope="session")
+def loop():
+    loop = asyncio.get_event_loop()
+    return loop
+
+
 @pytest.fixture(scope="session", autouse=True)
-async def initialize_tests():
+def initialize_tests(loop, request):
     init_logging(True)
-    await rearq.init()
+    loop.run_until_complete(rearq.init())
