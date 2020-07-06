@@ -8,20 +8,9 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 import aioredis
 from aioredis import Redis
 
+from rearq.constants import default_queue, queue_key_prefix
 from rearq.exceptions import ConfigurationError, UsageError
-from rearq.utils import timestamp_ms_now, to_ms_timestamp
-
-from .constants import (
-    default_queue,
-    delay_queue,
-    in_progress_key_prefix,
-    job_key_prefix,
-    queue_key_prefix,
-    result_key_prefix,
-    retry_key_prefix,
-)
-from .task import CronTask, Task
-from .utils import timestamp_ms_now, to_ms_timestamp
+from rearq.task import CronTask, Task
 
 Serializer = Callable[[Dict[str, Any]], bytes]
 Deserializer = Callable[[bytes], Dict[str, Any]]

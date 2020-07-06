@@ -28,7 +28,7 @@ isort = "*"
 black = "^19.10b0"
 pytest = "*"
 pytest-xdist = "*"
-mypy = "*"
+bandit = "*"
 pytest-asyncio = "*"
 
 [build-system]

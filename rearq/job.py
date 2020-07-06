@@ -7,9 +7,9 @@ from typing import Any, Dict, Optional, Tuple
 from crontab import CronTab
 from pydantic import BaseModel
 
-from . import in_progress_key_prefix, job_key_prefix, result_key_prefix
-from .exceptions import SerializationError
-from .utils import poll, timestamp_ms_now, to_ms_timestamp
+from rearq.constants import in_progress_key_prefix, job_key_prefix, result_key_prefix
+from rearq.exceptions import SerializationError
+from rearq.utils import poll, timestamp_ms_now, to_ms_timestamp
 
 logger = logging.getLogger("rearq.jobs")
 

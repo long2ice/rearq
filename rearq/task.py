@@ -6,9 +6,9 @@ from uuid import uuid4
 from aioredis.commands import MultiExec
 from crontab import CronTab
 
-from . import delay_queue, job_key_prefix, result_key_prefix
-from .job import Job, JobDef
-from .utils import timestamp_ms_now, to_ms_timestamp
+from rearq.constants import delay_queue, job_key_prefix, result_key_prefix
+from rearq.job import Job, JobDef
+from rearq.utils import timestamp_ms_now, to_ms_timestamp
 
 logger = logging.getLogger("arq.jobs")
 
@@ -113,7 +113,7 @@ class CronTask(Task):
         self.set_next()
 
     def set_next(self):
-        self.next_run = to_ms_timestamp(self.cron.next(default_utc=True))
+        self.next_run = to_ms_timestamp(self.cron.next(default_utc=False))
 
     @classmethod
     def add_cron_task(cls, function: str, cron_task: "CronTask"):
