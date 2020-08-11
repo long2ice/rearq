@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 import aioredis
 from aioredis import Redis
 
-from rearq.constants import default_queue, queue_key_prefix
+from rearq.constants import default_queue, delay_queue, queue_key_prefix
 from rearq.exceptions import ConfigurationError, UsageError
 from rearq.task import CronTask, Task
 
@@ -147,3 +147,11 @@ class ReArq:
         self._redis.close()
         await self._redis.wait_closed()
         self._redis = None
+
+    async def cancel(self, job_id: str):
+        """
+        cancel delay task
+        :param job_id:
+        :return:
+        """
+        return await self._redis.zrem(delay_queue, job_id)
