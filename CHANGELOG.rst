@@ -4,9 +4,11 @@ Changelog
 
 0.1
 ===
+
 0.1.3
 -----
 - Fix timezone in cron task.
+- Add `rearq.cancel()` to cancel delay task.
 
 0.1.2
 -----

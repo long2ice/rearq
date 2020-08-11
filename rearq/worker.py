@@ -401,7 +401,8 @@ class TimerWorker(Worker):
         jobs = await self._redis.mget(*jobs_key) or []  # type:List[str]
         p = self._redis.pipeline()
         for job in jobs:
-            job_def = JobDef.parse_raw(job.encode())
-            p.xadd(job_def.queue, {"job_id": job_def.job_id})
+            if job:
+                job_def = JobDef.parse_raw(job.encode())
+                p.xadd(job_def.queue, {"job_id": job_def.job_id})
         p.zrem(delay_queue, *jobs_id)
         await p.execute()
