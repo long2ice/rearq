@@ -223,6 +223,7 @@ class Worker:
             f" try={job_retry}" if job_retry > 1 else "",
         )
         try:
+            task.job_def = job_def
             async with async_timeout.timeout(self.job_timeout):
                 if job_def.function == check_pending_msgs.__name__:
                     result = await task.function(

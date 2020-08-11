@@ -15,6 +15,7 @@ logger = logging.getLogger("arq.jobs")
 
 class Task:
     expires_extra_ms = 86_400_000
+    job_def: JobDef
 
     def __init__(self, function: Callable, queue: str, rearq, job_retry: int):
 
