@@ -83,7 +83,9 @@ class ReArq:
     def get_task_map(self) -> Dict[str, Task]:
         return self._task_map
 
-    def create_task(self, func: Callable, queue: Optional[str] = None, cron: Optional[str] = None):
+    def create_task(
+        self, bind: bool, func: Callable, queue: Optional[str] = None, cron: Optional[str] = None
+    ):
 
         if not callable(func):
             raise UsageError("Task must be Callable!")
@@ -94,6 +96,7 @@ class ReArq:
             queue=queue_key_prefix + queue if queue else default_queue,
             rearq=self,
             job_retry=self.job_retry,
+            bind=bind,
         )
         if cron:
             t = CronTask(**defaults, cron=cron)
@@ -103,9 +106,9 @@ class ReArq:
         self._task_map[function] = t
         return t
 
-    def task(self, queue: Optional[str] = None, cron: Optional[str] = None):
+    def task(self, bind: bool = True, queue: Optional[str] = None, cron: Optional[str] = None):
         def wrapper(func: Callable):
-            return self.create_task(func, queue, cron)
+            return self.create_task(bind, func, queue, cron)
 
         return wrapper
 

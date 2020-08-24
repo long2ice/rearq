@@ -17,12 +17,13 @@ class Task:
     expires_extra_ms = 86_400_000
     job_def: JobDef
 
-    def __init__(self, function: Callable, queue: str, rearq, job_retry: int):
+    def __init__(self, bind: bool, function: Callable, queue: str, rearq, job_retry: int):
 
         self.job_retry = job_retry
         self.queue = queue
         self.rearq = rearq
         self.function = function
+        self.bind = bind
 
     async def delay(
         self,
@@ -108,8 +109,10 @@ class CronTask(Task):
     _cron_tasks: Dict[str, "CronTask"] = {}
     next_run: int
 
-    def __init__(self, function: Callable, queue: str, rearq, job_retry: int, cron: str):
-        super().__init__(function, queue, rearq, job_retry)
+    def __init__(
+        self, bind: bool, function: Callable, queue: str, rearq, job_retry: int, cron: str
+    ):
+        super().__init__(bind, function, queue, rearq, job_retry)
         self.cron = CronTab(cron)
         self.set_next()
 

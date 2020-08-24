@@ -4,6 +4,9 @@ Changelog
 
 0.1
 ===
+0.1.4
+-----
+- Add `bind` param in `rearq.task()`.
 
 0.1.3
 -----

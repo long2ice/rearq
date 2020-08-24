@@ -62,7 +62,7 @@ class Worker:
         self.in_progress_timeout = self.job_timeout + 10
         self._add_signal_handler(signal.SIGINT, self.handle_sig)
         self._add_signal_handler(signal.SIGTERM, self.handle_sig)
-        self.rearq.create_task(check_pending_msgs, queue, "* * * * *")
+        self.rearq.create_task(True, check_pending_msgs, queue, "* * * * *")
 
     def _add_signal_handler(self, signum: Signals, handler: Callable[[Signals], None]) -> None:
         self.loop.add_signal_handler(signum, partial(handler, signum))
@@ -215,13 +215,14 @@ class Worker:
             )
         start_ms = timestamp_ms_now()
         result = no_result
-        logger.info(
-            "%6.2fs → %s(%s)%s",
-            (start_ms - job_def.enqueue_ms) / 1000,
-            ref,
-            args_to_string(job_def.args, job_def.kwargs),
-            f" try={job_retry}" if job_retry > 1 else "",
-        )
+        if job_def.function != check_pending_msgs.__name__:
+            logger.info(
+                "%6.2fs → %s(%s)%s",
+                (start_ms - job_def.enqueue_ms) / 1000,
+                ref,
+                args_to_string(job_def.args, job_def.kwargs),
+                f" try={job_retry}" if job_retry > 1 else "",
+            )
         try:
             task.job_def = job_def
             async with async_timeout.timeout(self.job_timeout):
@@ -230,9 +231,15 @@ class Worker:
                         task, self.queue, self.group_name, self.consumer_name, self.job_timeout
                     )
                 else:
-                    result = await task.function(
-                        task, *(job_def.args or []), **(job_def.kwargs or {})
-                    )
+                    if task.bind:
+                        result = await task.function(
+                            task, *(job_def.args or []), **(job_def.kwargs or {})
+                        )
+                    else:
+                        result = await task.function(
+                            *(job_def.args or []), **(job_def.kwargs or {})
+                        )
+
         except Exception as e:
             success = False
             finish = False
@@ -241,7 +248,8 @@ class Worker:
         else:
             success = True
             finished_ms = timestamp_ms_now()
-            logger.info("%6.2fs ← %s ● %s", (finished_ms - start_ms) / 1000, ref, result)
+            if job_def.function != check_pending_msgs.__name__:
+                logger.info("%6.2fs ← %s ● %s", (finished_ms - start_ms) / 1000, ref, result)
             finish = True
             self.jobs_complete += 1
             await self._xack(queue, msg_id)
