@@ -7,6 +7,7 @@ Changelog
 0.1.4
 -----
 - Add `bind` param in `rearq.task()`.
+- Fix parse error with result_info().
 
 0.1.3
 -----

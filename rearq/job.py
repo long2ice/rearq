@@ -100,7 +100,7 @@ class Job:
         """
         v = await self.redis.get(result_key_prefix + self.job_id, encoding=None)
         if v:
-            return JobResult.parse_obj(v)
+            return JobResult.parse_raw(v)
         else:
             return None
 
