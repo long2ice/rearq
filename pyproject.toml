@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rearq"
-version = "0.1.4"
+version = "0.2.0"
 description = "Rewrite arq and make improvement."
 authors = ["long2ice <long2ice@gmail.com>"]
 license = "MIT"
@@ -17,9 +17,11 @@ include = ["LICENSE", "README.md"]
 [tool.poetry.dependencies]
 python = "^3.7"
 pydantic = "*"
-asyncclick = "*"
+click = "*"
 aioredis = "*"
 crontab = "*"
+uvicorn = { version = "*", optional = true}
+fastapi = { version = "*", optional = true}
 
 [tool.poetry.dev-dependencies]
 taskipy = "*"
@@ -37,3 +39,6 @@ build-backend = "poetry.masonry.api"
 
 [tool.poetry.scripts]
 rearq = "rearq.cli:main"
+
+[tool.poetry.extras]
+web = ["uvicorn", "fastapi"]

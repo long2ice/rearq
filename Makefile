@@ -17,7 +17,7 @@ up:
 	@poetry update
 
 deps:
-	@poetry install
+	@poetry install -E web
 
 style: deps
 	isort -src $(checkfiles)
