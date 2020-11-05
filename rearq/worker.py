@@ -377,7 +377,8 @@ class TimerWorker(Worker):
         for function, task in cron_tasks.items():
             if timestamp_ms_now() >= task.next_run:
                 execute = True
-                logger.info(f"{task.function.__name__}()")
+                if task.function.__name__ != check_pending_msgs.__name__:
+                    logger.info(f"{task.function.__name__}()")
                 next_job_id = uuid4().hex
                 job_key = job_key_prefix + next_job_id
                 enqueue_ms = timestamp_ms_now()
