@@ -77,7 +77,7 @@ class Worker:
             self.jobs_retried,
             len(self.tasks),
         )
-        for t in asyncio.Task.all_tasks():
+        for t in asyncio.all_tasks():
             t.cancel()
 
     async def log_redis_info(self,) -> None:

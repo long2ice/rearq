@@ -10,7 +10,7 @@ from rearq.constants import delay_queue, job_key_prefix, result_key_prefix
 from rearq.job import Job, JobDef
 from rearq.utils import timestamp_ms_now, to_ms_timestamp
 
-logger = logging.getLogger("arq.jobs")
+logger = logging.getLogger("rearq.jobs")
 
 
 class Task:
