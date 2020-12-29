@@ -10,7 +10,7 @@ from aioredis import Redis
 
 from rearq.constants import default_queue, delay_queue, queue_key_prefix
 from rearq.exceptions import ConfigurationError, UsageError
-from rearq.task import CronTask, Task
+from rearq.task import CronTask, Task, check_pending_msgs
 
 Serializer = Callable[[Dict[str, Any]], bytes]
 Deserializer = Callable[[bytes], Dict[str, Any]]
@@ -21,6 +21,7 @@ logger = logging.getLogger("rearq")
 class ReArq:
     _redis: Optional[Redis] = None
     _task_map: Dict[str, Task] = {}
+    _queue_task_map: Dict[str, List[str]] = {}
     _on_startup: Set[Callable] = set()
     _on_shutdown: Set[Callable] = set()
 
@@ -83,14 +84,29 @@ class ReArq:
     def get_task_map(self) -> Dict[str, Task]:
         return self._task_map
 
+    def get_queue_tasks(self, queue: str) -> List[str]:
+        tasks = self._queue_task_map.get(queue)
+        return tasks
+
     def create_task(
-        self, bind: bool, func: Callable, queue: Optional[str] = None, cron: Optional[str] = None
+        self,
+        bind: bool,
+        func: Callable,
+        queue: Optional[str] = None,
+        cron: Optional[str] = None,
+        name: Optional[str] = None,
     ):
 
         if not callable(func):
             raise UsageError("Task must be Callable!")
 
-        function = func.__name__
+        function = name or func.__name__
+        if function in self._queue_task_map:
+            raise UsageError("Task name must be unique!")
+
+        if function != check_pending_msgs.__name__:
+            self._queue_task_map.setdefault(queue, []).append(function)
+
         defaults = dict(
             function=func,
             queue=queue_key_prefix + queue if queue else default_queue,
@@ -106,9 +122,15 @@ class ReArq:
         self._task_map[function] = t
         return t
 
-    def task(self, bind: bool = True, queue: Optional[str] = None, cron: Optional[str] = None):
+    def task(
+        self,
+        bind: bool = True,
+        queue: Optional[str] = None,
+        cron: Optional[str] = None,
+        name: Optional[str] = None,
+    ):
         def wrapper(func: Callable):
-            return self.create_task(bind, func, queue, cron)
+            return self.create_task(bind, func, queue, cron, name)
 
         return wrapper
 

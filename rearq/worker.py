@@ -45,6 +45,7 @@ class Worker:
         self.keep_result_seconds = rearq.keep_result_seconds
         self.max_jobs = rearq.max_jobs
         self.rearq = rearq
+        self.register_tasks = rearq.get_queue_tasks(queue)
         if queue:
             self.queue = queue_key_prefix + queue
         else:
@@ -95,6 +96,7 @@ class Worker:
 
     async def _main(self) -> None:
         logger.info(f"Start worker success with queue: {self.queue}")
+        logger.info(f"Registered tasks: {', '.join(self.register_tasks)}")
         await self.log_redis_info()
         await self.rearq.startup()
         try:
@@ -359,6 +361,10 @@ class Worker:
 class TimerWorker(Worker):
     async def _main(self) -> None:
         logger.info(f"Start timer worker success with queue: {self.queue}")
+        tasks = list(CronTask.get_cron_tasks().keys())
+        tasks.remove(check_pending_msgs.__name__)
+        logger.info(f"Registered timer tasks: {', '.join(tasks)}")
+
         await self.log_redis_info()
         await self.rearq.startup()
 
