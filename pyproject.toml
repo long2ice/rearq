@@ -20,11 +20,10 @@ pydantic = "*"
 click = "*"
 aioredis = "*"
 crontab = "*"
-uvicorn = { version = "*", optional = true}
-fastapi = { version = "*", optional = true}
+uvicorn = "*"
+fastapi = "*"
 
 [tool.poetry.dev-dependencies]
-taskipy = "*"
 flake8 = "*"
 isort = "*"
 black = "^19.10b0"
@@ -39,6 +38,3 @@ build-backend = "poetry.masonry.api"
 
 [tool.poetry.scripts]
 rearq = "rearq.cli:main"
-
-[tool.poetry.extras]
-web = ["uvicorn", "fastapi"]

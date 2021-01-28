@@ -9,7 +9,7 @@ from click import BadArgumentUsage, Context
 
 from rearq.log import init_logging
 from rearq.version import VERSION
-from rearq.web.app import app
+from rearq.api.app import app
 from rearq.worker import TimerWorker, Worker
 
 
@@ -54,18 +54,20 @@ async def worker(ctx: Context, queue: str, timer: bool):
     rearq = ctx.obj["rearq"]
     await rearq.init()
     if timer:
-        w = TimerWorker(rearq, queue=queue,)
+        w = TimerWorker(rearq, queue=queue, )
     else:
         w = Worker(rearq, queue=queue)
     await w.async_run()
 
 
-@cli.command(help="Start web monitor interface.")
+@cli.command(help="Start rest api server.")
 @click.option("--host", default="0.0.0.0", show_default=True, help="Listen host.")
-@click.option("-p", "--port", default=8000, show_default=True, help="Listen port.")
+@click.option("-p", "--port", default=8021, show_default=True, help="Listen port.")
 @click.pass_context
-def web(ctx: Context, host: str, port: int):
+def server(ctx: Context, host: str, port: int):
     rearq = ctx.obj["rearq"]
+    app.rearq = rearq
+
     verbose = ctx.obj["verbose"]
 
     @app.on_event("startup")

@@ -4,7 +4,8 @@
 
 ## Introduction
 
-Rearq is a distributed task queue with asyncio and redis, which rewrite from [arq](https://github.com/samuelcolvin/arq) and make improvement.
+Rearq is a distributed task queue with asyncio and redis, which rewrite from [arq](https://github.com/samuelcolvin/arq)
+and make improvement.
 
 ## Install
 
@@ -39,11 +40,12 @@ async def on_startup():
     print("startup")
 
 
-@rearq.task(queue = "myqueue")
+@rearq.task(queue="myqueue")
 async def add(self, a, b):
     return a + b
 
-@rearq.task(cron="*/5 * * * * * *") # run task per 5 seconds
+
+@rearq.task(cron="*/5 * * * * * *")  # run task per 5 seconds
 async def timer(self):
     return "timer"
 ```
@@ -77,24 +79,28 @@ If you have timeing task, run another command also:
 ```python
 app = FastAPI()
 
+
 @app.on_event("startup")
 async def startup() -> None:
     await rearq.init()
+
 
 @app.on_event("shutdown")
 async def shutdown() -> None:
     await rearq.close()
 
+
 # then run task in view
 @app.get("/test")
 async def test():
-    job = await add.delay(args=(1,2))
+    job = await add.delay(args=(1, 2))
     return job.info()
 ```
 
 ## Why not arq
 
-Thanks great work of `arq`, but that project is not so active now and lack of maintenance. On the other hand, I don't like some solution of `arq` and its api, so I open this project and aims to work better.
+Thanks great work of `arq`, but that project is not so active now and lack of maintenance. On the other hand, I don't
+like some solution of `arq` and its api, so I open this project and aims to work better.
 
 ## What's the differences
 
@@ -107,9 +113,11 @@ Rearq:
 ```python
 rearq = Rearq()
 
+
 @rearq.task()
 async def add(self, a, b):
     return a + b
+
 
 job = await add.delay(args=(1, 2))
 print(job)
@@ -119,11 +127,13 @@ Arq:
 
 ```python
 class WorkerSettings:
-    functions = [ add ]
+    functions = [add]
     redis_settings = RedisSettings(**settings.ARQ)
 
-async def add(ctx, a,b):
+
+async def add(ctx, a, b):
     return a + b
+
 
 await arq.enqueue_job('add', 1, 2)
 ```
@@ -132,9 +142,47 @@ await arq.enqueue_job('add', 1, 2)
 
 Arq use redis `zset` to make delay queue and timing queue, and Rearq use `zset` and `stream` with `ack`.
 
+## Rest API
+
+There are several apis to control rearq.
+
+### Start server
+
+```shell
+❯ rearq main:rearq server -h                                                                                                                                                  16:43:15
+Usage: rearq server [OPTIONS]
+
+  Start rest api server.
+
+Options:
+  --host TEXT         Listen host.  [default: 0.0.0.0]
+  -p, --port INTEGER  Listen port.  [default: 8021]
+  -h, --help          Show this message and exit.
+```
+
+### API docs
+
+After server run, you can visit [https://127.0.0.1:8021/docs](https://127.0.0.1:8021/docs) to get all apis.
+
+### GET `/job`
+
+Get job information.
+
+### POST `/job`
+
+Add a job for a task.
+
+### DELETE `/job`
+
+Cancel a delay task.
+
+### GET `/job/result`
+
+Get job result.
+
 ## Documentation
 
-See documentation in [https://rearq.long2ice.cn](https://rearq.long2ice.cn).
+Writing...
 
 ## ThanksTo
 
