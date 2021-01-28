@@ -15,12 +15,6 @@ Just install from pypi:
 > pip install rearq
 ```
 
-or install latest code from github:
-
-```shell
-> pip install -e git+https://github.com/long2ice/rearq.git
-```
-
 ## Quick Start
 
 ### Task Definition
@@ -32,11 +26,13 @@ rearq = ReArq()
 
 @rearq.on_shutdown
 async def on_shutdown():
+    # you can do some clean work here like close db and so on...
     print("shutdown")
 
 
 @rearq.on_startup
 async def on_startup():
+    # you should do some initialization work here, such tortoise-orm init and so on...
     print("startup")
 
 
@@ -53,7 +49,7 @@ async def timer(self):
 ### Run rearq worker
 
 ```shell
-> rearq worker main:rearq -q myqueue
+> rearq main:rearq worker -q myqueue
 ```
 
 ```log
@@ -66,7 +62,7 @@ async def timer(self):
 If you have timeing task, run another command also:
 
 ```shell
-> rearq worker -t main:rearq
+> rearq main:rearq worker -t
 ```
 
 ```log
@@ -96,51 +92,6 @@ async def test():
     job = await add.delay(args=(1, 2))
     return job.info()
 ```
-
-## Why not arq
-
-Thanks great work of `arq`, but that project is not so active now and lack of maintenance. On the other hand, I don't
-like some solution of `arq` and its api, so I open this project and aims to work better.
-
-## What's the differences
-
-### Api
-
-Rearq provide more friendly api to add register and add task, inspired by `celery`.
-
-Rearq:
-
-```python
-rearq = Rearq()
-
-
-@rearq.task()
-async def add(self, a, b):
-    return a + b
-
-
-job = await add.delay(args=(1, 2))
-print(job)
-```
-
-Arq:
-
-```python
-class WorkerSettings:
-    functions = [add]
-    redis_settings = RedisSettings(**settings.ARQ)
-
-
-async def add(ctx, a, b):
-    return a + b
-
-
-await arq.enqueue_job('add', 1, 2)
-```
-
-### Queue implementation
-
-Arq use redis `zset` to make delay queue and timing queue, and Rearq use `zset` and `stream` with `ack`.
 
 ## Rest API
 
@@ -182,7 +133,7 @@ Get job result.
 
 ## Documentation
 
-Writing...
+> Writing...
 
 ## ThanksTo
 
