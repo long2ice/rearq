@@ -11,9 +11,9 @@ async def test_add_job():
     job = await add.delay(job_id=job_id, args=(1, 2))
     info = await job.info()
     assert (
-        info.function == "add"
-        and info.args == (1, 2)
-        and info.job_retry == 3
-        and info.job_id == job_id
-        and info.queue == "rearq:queue:default"
+            info.function == "add"
+            and info.args == (1, 2)
+            and info.job_retry == 3
+            and info.job_id == job_id
+            and info.queue == "rearq:queue:default"
     )
