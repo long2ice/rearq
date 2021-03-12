@@ -107,13 +107,13 @@ Usage: rearq server [OPTIONS]
 
 Options:
   --host TEXT         Listen host.  [default: 0.0.0.0]
-  -p, --port INTEGER  Listen port.  [default: 8021]
+  -p, --port INTEGER  Listen port.  [default: 8080]
   -h, --help          Show this message and exit..
 ```
 
 ### API docs
 
-After server run, you can visit [https://127.0.0.1:8021/docs](https://127.0.0.1:8021/docs) to get all apis.
+After server run, you can visit [https://127.0.0.1:8080/docs](https://127.0.0.1:8080/docs) to get all apis.
 
 ### GET `/job`
 

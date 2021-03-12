@@ -62,7 +62,7 @@ async def worker(ctx: Context, queue: str, timer: bool):
 
 @cli.command(help="Start rest api server.")
 @click.option("--host", default="0.0.0.0", show_default=True, help="Listen host.")
-@click.option("-p", "--port", default=8021, show_default=True, help="Listen port.")
+@click.option("-p", "--port", default=8080, show_default=True, help="Listen port.")
 @click.pass_context
 def server(ctx: Context, host: str, port: int):
     rearq = ctx.obj["rearq"]
@@ -84,3 +84,7 @@ def server(ctx: Context, host: str, port: int):
 def main():
     sys.path.insert(0, ".")
     cli()
+
+
+if __name__ == '__main__':
+    main()
