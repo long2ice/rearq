@@ -12,15 +12,10 @@ from aioredis.errors import BusyGroupError
 from pydantic import ValidationError
 
 from rearq import CronTask
-from rearq.constants import (
-    default_queue,
-    delay_queue,
-    in_progress_key_prefix,
-    job_key_prefix,
-    queue_key_prefix,
-    result_key_prefix,
-    retry_key_prefix,
-)
+from rearq.constants import (default_queue, delay_queue,
+                             in_progress_key_prefix, job_key_prefix,
+                             queue_key_prefix, result_key_prefix,
+                             retry_key_prefix)
 from rearq.job import JobDef, JobResult
 from rearq.task import check_pending_msgs
 from rearq.utils import args_to_string, poll, timestamp_ms_now

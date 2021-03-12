@@ -100,7 +100,7 @@ There are several apis to control rearq.
 ### Start server
 
 ```shell
-❯ rearq main:rearq server -h                                                                                                                                                  16:43:15
+> rearq main:rearq server
 Usage: rearq server [OPTIONS]
 
   Start rest api server.
@@ -108,7 +108,7 @@ Usage: rearq server [OPTIONS]
 Options:
   --host TEXT         Listen host.  [default: 0.0.0.0]
   -p, --port INTEGER  Listen port.  [default: 8021]
-  -h, --help          Show this message and exit.
+  -h, --help          Show this message and exit..
 ```
 
 ### API docs

@@ -1,9 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from starlette.status import HTTP_404_NOT_FOUND
-from .depends import get_rearq
-from .schemas import AddJobIn
+
 from .. import ReArq
 from ..job import Job
+from .depends import get_rearq
+from .schemas import AddJobIn
 
 app = FastAPI()
 

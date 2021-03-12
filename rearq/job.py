@@ -7,7 +7,8 @@ from typing import Any, Dict, Optional, Tuple
 from crontab import CronTab
 from pydantic import BaseModel
 
-from rearq.constants import in_progress_key_prefix, job_key_prefix, result_key_prefix
+from rearq.constants import (in_progress_key_prefix, job_key_prefix,
+                             result_key_prefix)
 from rearq.exceptions import SerializationError
 from rearq.utils import poll, timestamp_ms_now, to_ms_timestamp
 

@@ -2,22 +2,11 @@ checkfiles = rearq/ tests/ examples/ conftest.py
 black_opts = -l 100 -t py38
 py_warn = PYTHONDEVMODE=1
 
-help:
-	@echo "ReArq development makefile"
-	@echo
-	@echo  "usage: make <target>"
-	@echo  "Targets:"
-	@echo  "    up			Updates dev/test dependencies"
-	@echo  "    deps		Ensure dev/test dependencies are installed"
-	@echo  "    check		Checks that build is sane"
-	@echo  "    test		Runs all tests"
-	@echo  "    style		Auto-formats the code"
-
 up:
 	@poetry update
 
 deps:
-	@poetry install -E web
+	@poetry install
 
 style: deps
 	isort -src $(checkfiles)
@@ -34,6 +23,3 @@ test: deps
 build: deps
 	@poetry build
 
-docs: deps
-	@pip install -r docs/requirements.txt
-	@sphinx-build docs/ docs/_build
