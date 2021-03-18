@@ -3,7 +3,6 @@ import asyncio
 import pytest
 
 from rearq import ReArq, Task
-from rearq.log import init_logging
 
 rearq = ReArq()
 
@@ -41,5 +40,4 @@ def loop():
 
 @pytest.fixture(scope="session", autouse=True)
 def initialize_tests(loop, request):
-    init_logging(True)
     loop.run_until_complete(rearq.init())

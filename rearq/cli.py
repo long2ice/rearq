@@ -8,7 +8,6 @@ import uvicorn
 from click import BadArgumentUsage, Context
 
 from rearq.api.app import app
-from rearq.log import init_logging
 from rearq.version import VERSION
 from rearq.worker import TimerWorker, Worker
 
@@ -29,7 +28,6 @@ def coro(f):
 @click.pass_context
 @coro
 async def cli(ctx: Context, rearq: str, verbose):
-    init_logging(verbose)
     splits = rearq.split(":")
     rearq_path = splits[0]
     rearq = splits[1]
@@ -54,7 +52,7 @@ async def worker(ctx: Context, queue: str, timer: bool):
     rearq = ctx.obj["rearq"]
     await rearq.init()
     if timer:
-        w = TimerWorker(rearq, queue=queue, )
+        w = TimerWorker(rearq, queue=queue,)
     else:
         w = Worker(rearq, queue=queue)
     await w.async_run()
@@ -86,5 +84,5 @@ def main():
     cli()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

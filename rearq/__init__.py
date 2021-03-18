@@ -1,6 +1,5 @@
 import asyncio
 import functools
-import logging
 from functools import wraps
 from ssl import SSLContext
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
@@ -14,8 +13,6 @@ from rearq.task import CronTask, Task, check_pending_msgs
 
 Serializer = Callable[[Dict[str, Any]], bytes]
 Deserializer = Callable[[bytes], Dict[str, Any]]
-
-logger = logging.getLogger("rearq")
 
 
 class ReArq:

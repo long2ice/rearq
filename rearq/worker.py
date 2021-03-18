@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import signal
 from functools import partial
 from signal import Signals
@@ -9,13 +8,19 @@ from uuid import uuid4
 import async_timeout
 from aioredis import MultiExecError, Redis
 from aioredis.errors import BusyGroupError
+from loguru import logger
 from pydantic import ValidationError
 
 from rearq import CronTask
-from rearq.constants import (default_queue, delay_queue,
-                             in_progress_key_prefix, job_key_prefix,
-                             queue_key_prefix, result_key_prefix,
-                             retry_key_prefix)
+from rearq.constants import (
+    default_queue,
+    delay_queue,
+    in_progress_key_prefix,
+    job_key_prefix,
+    queue_key_prefix,
+    result_key_prefix,
+    retry_key_prefix,
+)
 from rearq.job import JobDef, JobResult
 from rearq.task import check_pending_msgs
 from rearq.utils import args_to_string, poll, timestamp_ms_now
@@ -23,7 +28,6 @@ from rearq.utils import args_to_string, poll, timestamp_ms_now
 Serializer = Callable[[Dict[str, Any]], bytes]
 Deserializer = Callable[[bytes], Dict[str, Any]]
 
-logger = logging.getLogger("rearq.worker")
 no_result = object()
 
 

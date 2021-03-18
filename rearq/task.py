@@ -1,16 +1,14 @@
 import datetime
-import logging
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 from uuid import uuid4
 
 from aioredis.commands import MultiExec
 from crontab import CronTab
+from loguru import logger
 
 from rearq.constants import delay_queue, job_key_prefix, result_key_prefix
 from rearq.job import Job, JobDef
 from rearq.utils import timestamp_ms_now, to_ms_timestamp
-
-logger = logging.getLogger("rearq.jobs")
 
 
 class Task:
