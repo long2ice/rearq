@@ -6,9 +6,11 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import aioredis
 from aioredis import Redis
+from tortoise import Tortoise
 
 from rearq.constants import default_queue, delay_queue, queue_key_prefix
 from rearq.exceptions import ConfigurationError, UsageError
+from rearq.server import models
 from rearq.task import CronTask, Task, check_pending_msgs
 
 Serializer = Callable[[Dict[str, Any]], bytes]
@@ -35,6 +37,7 @@ class ReArq:
         max_jobs: int = 10,
         keep_result_seconds: int = 3600,
         job_timeout: int = 300,
+        db_url: str = None,
     ):
         self.job_timeout = job_timeout
         self.keep_result_seconds = keep_result_seconds
@@ -48,6 +51,7 @@ class ReArq:
         self.redis_port = redis_port
         self.redis_password = redis_password
         self.redis_host = redis_host
+        self.db_url = db_url
 
     async def init(self):
         if self._redis:
@@ -73,13 +77,21 @@ class ReArq:
         )
         self._redis = Redis(pool)
 
+        await Tortoise.init(db_url=self.db_url, modules={"models": [models]})
+        await Tortoise.generate_schemas()
+
     def get_redis(self) -> Redis:
         if not self._redis:
             raise UsageError("You must call .init() first!")
         return self._redis
 
-    def get_task_map(self) -> Dict[str, Task]:
+    @property
+    def task_map(self) -> Dict[str, Task]:
         return self._task_map
+
+    @property
+    def queue_task_map(self) -> Dict[str, List[str]]:
+        return self._queue_task_map
 
     def get_queue_tasks(self, queue: str) -> List[str]:
         tasks = self._queue_task_map.get(queue)

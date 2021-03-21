@@ -6,7 +6,7 @@ up:
 	@poetry update
 
 deps:
-	@poetry install
+	@poetry install -E mysql -E postgres
 
 style: deps
 	isort -src $(checkfiles)
@@ -18,8 +18,7 @@ check: deps
 	bandit -x tests -r $(checkfiles)
 
 test: deps
-	$(py_warn) py.test
+	$(py_warn) pytest
 
 build: deps
 	@poetry build
-

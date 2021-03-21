@@ -7,7 +7,7 @@ import click
 import uvicorn
 from click import BadArgumentUsage, Context
 
-from rearq.api.app import app
+from rearq.server.app import app
 from rearq.version import VERSION
 from rearq.worker import TimerWorker, Worker
 

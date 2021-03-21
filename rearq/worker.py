@@ -54,7 +54,7 @@ class Worker:
         self.queue_read_limit = max(self.max_jobs * 5, 100)
         self.tasks: Set[asyncio.Task[Any]] = set()
         self._redis = rearq.get_redis()
-        self._task_map = rearq.get_task_map()
+        self._task_map = rearq.task_map
         self.jobs_complete = 0
         self.jobs_retried = 0
         self.jobs_failed = 0

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rearq"
-version = "0.2.0"
+version = "0.2.1"
 description = "Rewrite arq and make improvement."
 authors = ["long2ice <long2ice@gmail.com>"]
 license = "Apache-2.0"
@@ -23,6 +23,11 @@ crontab = "*"
 uvicorn = "*"
 fastapi = "*"
 loguru = "*"
+jinja2 = "*"
+aiofiles = "*"
+tortoise-orm = "*"
+asyncmy = { version = "*", optional = true }
+asyncpg = { version = "*", optional = true }
 
 [tool.poetry.dev-dependencies]
 flake8 = "*"
@@ -32,6 +37,10 @@ pytest = "*"
 pytest-xdist = "*"
 bandit = "*"
 pytest-asyncio = "*"
+
+[tool.poetry.extras]
+postgres = ["asyncpg"]
+mysql = ["asyncmy"]
 
 [build-system]
 requires = ["poetry>=0.12"]

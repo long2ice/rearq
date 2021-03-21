@@ -4,7 +4,7 @@ import pytest
 
 from rearq import ReArq, Task
 
-rearq = ReArq()
+rearq = ReArq(db_url="mysql://root:123456@127.0.0.1:3306/rearq")
 
 
 @rearq.on_shutdown
