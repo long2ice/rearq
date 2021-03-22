@@ -21,6 +21,8 @@ Just install from pypi:
 
 ```python
 # main.py
+from rearq import ReArq
+
 rearq = ReArq()
 
 
@@ -59,7 +61,7 @@ async def timer(self):
 
 ### Run rearq timing worker
 
-If you have timeing task, run another command also:
+If you have timing task, you should run another command also:
 
 ```shell
 > rearq main:rearq worker -t
@@ -73,6 +75,8 @@ If you have timeing task, run another command also:
 ### Integration in FastAPI
 
 ```python
+from fastapi import FastAPI
+
 app = FastAPI()
 
 
@@ -93,9 +97,9 @@ async def test():
     return job.info()
 ```
 
-## Rest API
+## Restful api and gui
 
-There are several apis to control rearq.
+There are several apis and gui to control rearq.
 
 ### Start server
 

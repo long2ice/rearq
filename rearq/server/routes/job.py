@@ -11,13 +11,13 @@ router = APIRouter()
 
 @router.get("")
 async def get_job(job_id: str, queue: str = "default", rearq: ReArq = Depends(get_rearq)):
-    job = Job(rearq.get_redis(), job_id, queue)
+    job = Job(await rearq.get_redis(), job_id, queue)
     return await job.info()
 
 
 @router.get("/result")
 async def get_job_result(job_id: str, queue: str = "default", rearq: ReArq = Depends(get_rearq)):
-    job = Job(rearq.get_redis(), job_id, queue)
+    job = Job(await rearq.get_redis(), job_id, queue)
     return await job.result_info()
 
 

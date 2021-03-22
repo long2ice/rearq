@@ -6,7 +6,7 @@ from aioredis.commands import MultiExec
 from crontab import CronTab
 from loguru import logger
 
-from rearq.constants import delay_queue, job_key_prefix, result_key_prefix
+from rearq.constants import DELAY_QUEUE, JOB_KEY_PREFIX, RESULT_KEY_PREFIX
 from rearq.job import Job, JobDef
 from rearq.utils import timestamp_ms_now, to_ms_timestamp
 
@@ -45,11 +45,11 @@ class Task:
         expires_ms = (
             to_ms_timestamp(expires) if expires else defer_ts - enqueue_ms + self.expires_extra_ms
         )
-        job_key = job_key_prefix + job_id
-        redis = self.rearq.get_redis()
+        job_key = JOB_KEY_PREFIX + job_id
+        redis = await self.rearq.get_redis()
         pipe = redis.pipeline()
         pipe.exists(job_key)
-        pipe.exists(result_key_prefix + job_id)
+        pipe.exists(RESULT_KEY_PREFIX + job_id)
         job_exists, job_result_exists = await pipe.execute()
         if job_exists or job_result_exists:
             logger.warning(
@@ -75,7 +75,7 @@ class Task:
         if not eta and not countdown:
             p.xadd(self.queue, {"job_id": job_id})
         else:
-            p.zadd(delay_queue, defer_ts, job_id)
+            p.zadd(DELAY_QUEUE, defer_ts, job_id)
 
         await p.execute()
 
@@ -90,7 +90,7 @@ async def check_pending_msgs(
     :return:
     """
     rearq = self.rearq
-    redis = rearq.get_redis()
+    redis = await rearq.get_redis()
     pending_msgs = await redis.xpending(self.queue, group_name, "-", "+", 10)
     p = redis.pipeline()
     execute = False
@@ -111,11 +111,12 @@ class CronTask(Task):
         self, bind: bool, function: Callable, queue: str, rearq, job_retry: int, cron: str
     ):
         super().__init__(bind, function, queue, rearq, job_retry)
-        self.cron = CronTab(cron)
+        self.crontab = CronTab(cron)
+        self.cron = cron
         self.set_next()
 
     def set_next(self):
-        self.next_run = to_ms_timestamp(self.cron.next(default_utc=False))
+        self.next_run = to_ms_timestamp(self.crontab.next(default_utc=False))
 
     @classmethod
     def add_cron_task(cls, function: str, cron_task: "CronTask"):

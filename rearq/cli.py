@@ -46,20 +46,21 @@ async def cli(ctx: Context, rearq: str, verbose):
 @cli.command(help="Start rearq worker.")
 @click.option("-q", "--queue", required=False, help="Queue to consume.")
 @click.option("-t", "--timer", default=False, is_flag=True, help="Start a timer worker.")
+@click.option("--name", required=False, help="Worker name.")
 @click.pass_context
 @coro
-async def worker(ctx: Context, queue: str, timer: bool):
+async def worker(ctx: Context, queue: str, timer: bool, name: str):
     rearq = ctx.obj["rearq"]
     await rearq.init()
     if timer:
-        w = TimerWorker(rearq, queue=queue,)
+        w = TimerWorker(rearq, queue=queue, group_name=name)
     else:
-        w = Worker(rearq, queue=queue)
-    await w.async_run()
+        w = Worker(rearq, queue=queue, group_name=name)
+    await w.run()
 
 
 @cli.command(help="Start rest api server.")
-@click.option("--host", default="0.0.0.0", show_default=True, help="Listen host.")
+@click.option("--host", default="127.0.0.1", show_default=True, help="Listen host.")
 @click.option("-p", "--port", default=8080, show_default=True, help="Listen port.")
 @click.pass_context
 def server(ctx: Context, host: str, port: int):

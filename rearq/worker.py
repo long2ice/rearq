@@ -1,4 +1,6 @@
 import asyncio
+import datetime
+import json
 import signal
 from functools import partial
 from signal import Signals
@@ -6,20 +8,20 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 from uuid import uuid4
 
 import async_timeout
-from aioredis import MultiExecError, Redis
+from aioredis import MultiExecError
 from aioredis.errors import BusyGroupError
 from loguru import logger
 from pydantic import ValidationError
 
-from rearq import CronTask
+from rearq import CronTask, constants
 from rearq.constants import (
-    default_queue,
-    delay_queue,
-    in_progress_key_prefix,
-    job_key_prefix,
-    queue_key_prefix,
-    result_key_prefix,
-    retry_key_prefix,
+    DEFAULT_QUEUE,
+    DELAY_QUEUE,
+    IN_PROGRESS_KEY_PREFIX,
+    JOB_KEY_PREFIX,
+    QUEUE_KEY_PREFIX,
+    RESULT_KEY_PREFIX,
+    RETRY_KEY_PREFIX,
 )
 from rearq.job import JobDef, JobResult
 from rearq.task import check_pending_msgs
@@ -32,28 +34,24 @@ no_result = object()
 
 
 class Worker:
-    _redis: Redis
-    _main_task: Optional[asyncio.Task] = None
     _task_map = {}
 
-    def __init__(
-        self, rearq, queue: Optional[str] = None, group_name="default",
-    ):
-        self.group_name = group_name
+    def __init__(self, rearq, queue: Optional[str] = None, group_name: Optional[str] = None):
+        self.group_name = group_name or "default"
+        self.consumer_name = None
         self.job_timeout = rearq.job_timeout
         self.keep_result_seconds = rearq.keep_result_seconds
         self.max_jobs = rearq.max_jobs
         self.rearq = rearq
         self.register_tasks = rearq.get_queue_tasks(queue)
         if queue:
-            self.queue = queue_key_prefix + queue
+            self.queue = QUEUE_KEY_PREFIX + queue
         else:
-            self.queue = default_queue
+            self.queue = DEFAULT_QUEUE
         self.loop = asyncio.get_event_loop()
         self.sem = asyncio.BoundedSemaphore(self.max_jobs)
         self.queue_read_limit = max(self.max_jobs * 5, 100)
         self.tasks: Set[asyncio.Task[Any]] = set()
-        self._redis = rearq.get_redis()
         self._task_map = rearq.task_map
         self.jobs_complete = 0
         self.jobs_retried = 0
@@ -64,24 +62,24 @@ class Worker:
         self._add_signal_handler(signal.SIGTERM, self.handle_sig)
         self.rearq.create_task(True, check_pending_msgs, queue, "* * * * *")
 
+    async def get_redis(self):
+        return await self.rearq.get_redis()
+
     def _add_signal_handler(self, signum: Signals, handler: Callable[[Signals], None]) -> None:
         self.loop.add_signal_handler(signum, partial(handler, signum))
 
     def handle_sig(self, signum: Signals) -> None:
         sig = Signals(signum)
         logger.info(
-            "shutdown on %s ◆ %d jobs complete ◆ %d failed ◆ %d retries ◆ %d ongoing to cancel",
-            sig.name,
-            self.jobs_complete,
-            self.jobs_failed,
-            self.jobs_retried,
-            len(self.tasks),
+            "shutdown on %s ◆ %d jobs complete ◆ %d failed ◆ %d retries ◆ %d ongoing to cancel"
+            % (sig.name, self.jobs_complete, self.jobs_failed, self.jobs_retried, len(self.tasks),)
         )
         for t in asyncio.all_tasks():
             t.cancel()
 
     async def log_redis_info(self,) -> None:
-        p = self._redis.pipeline()
+        redis = await self.get_redis()
+        p = redis.pipeline()
         p.info()
         p.dbsize()
         info, key_count = await p.execute()
@@ -98,40 +96,39 @@ class Worker:
         logger.info(f"Registered tasks: {', '.join(self.register_tasks)}")
         await self.log_redis_info()
         await self.rearq.startup()
+        redis = await self.get_redis()
         try:
-            await self._redis.xgroup_create(
-                self.queue, self.group_name, latest_id="$", mkstream=True
-            )
+            await redis.xgroup_create(self.queue, self.group_name, latest_id="$", mkstream=True)
         except BusyGroupError:
             pass
-        length = len(await self._redis.xinfo_groups(self.queue))
+        length = len(await redis.xinfo_groups(self.queue))
         self.consumer_name = f"{self.group_name}-{length}"
         while True:
+            msgs = await redis.xread_group(
+                self.group_name,
+                self.consumer_name,
+                [self.queue],
+                count=self.queue_read_limit,
+                latest_ids=[">"],
+            )
             async with self.sem:
-                msgs = await self._redis.xread_group(
-                    self.group_name,
-                    self.consumer_name,
-                    [self.queue],
-                    count=self.queue_read_limit,
-                    latest_ids=[">"],
-                )
                 for msg in msgs:
                     await self.sem.acquire()
                     queue, msg_id, job = msg
                     job_id = job.get("job_id")
-                    in_progress_key = in_progress_key_prefix + job_id
-                    ongoing_exists = await self._redis.exists(in_progress_key)
+                    in_progress_key = IN_PROGRESS_KEY_PREFIX + job_id
+                    ongoing_exists = await redis.exists(in_progress_key)
                     if ongoing_exists:
-                        logger.debug("job %s already running elsewhere", job_id)
+                        logger.debug("job %s already running elsewhere" % job_id)
                         await self._xack(queue, msg_id)
                         continue
-                    tr = self._redis.multi_exec()
+                    tr = redis.multi_exec()
                     tr.setex(in_progress_key, self.in_progress_timeout, b"1")
                     try:
                         await tr.execute()
                     except MultiExecError:
                         self.sem.release()
-                        logger.debug("multi-exec error, job %s already started elsewhere", job_id)
+                        logger.debug("multi-exec error, job %s already started elsewhere" % job_id)
                         await asyncio.gather(*tr._results, return_exceptions=True)
                     else:
                         task = self.loop.create_task(self.run_job(queue, msg_id, job_id))
@@ -144,13 +141,15 @@ class Worker:
         self.tasks.remove(task)
 
     async def _xack(self, queue: str, msg_id: str):
-        await self._redis.xack(queue, self.group_name, msg_id)
+        redis = await self.get_redis()
+        await redis.xack(queue, self.group_name, msg_id)
 
     async def run_job(self, queue: str, msg_id: str, job_id: str):
-        p = self._redis.pipeline()
-        p.get(job_key_prefix + job_id)
-        p.incr(retry_key_prefix + job_id)
-        p.expire(retry_key_prefix + job_id, 88400)
+        redis = await self.get_redis()
+        p = redis.pipeline()
+        p.get(JOB_KEY_PREFIX + job_id)
+        p.incr(RETRY_KEY_PREFIX + job_id)
+        p.expire(RETRY_KEY_PREFIX + job_id, 88400)
         job_data, job_retry, _ = await p.execute()
 
         abort_job_data = dict(
@@ -198,7 +197,7 @@ class Worker:
 
         if job_retry > job_def.job_retry + 1:
             t = (timestamp_ms_now() - job_def.enqueue_ms) / 1000
-            logger.warning("%6.2fs ! %s max retries %d exceeded", t, ref, job_def.job_retry)
+            logger.warning("%6.2fs ! %s max retries %d exceeded" % (t, ref, job_def.job_retry))
             return await asyncio.shield(
                 self.abort_job(
                     job_id=job_id,
@@ -218,11 +217,13 @@ class Worker:
         result = no_result
         if job_def.function != check_pending_msgs.__name__:
             logger.info(
-                "%6.2fs → %s(%s)%s",
-                (start_ms - job_def.enqueue_ms) / 1000,
-                ref,
-                args_to_string(job_def.args, job_def.kwargs),
-                f" try={job_retry}" if job_retry > 1 else "",
+                "%6.2fs → %s(%s)%s"
+                % (
+                    (start_ms - job_def.enqueue_ms) / 1000,
+                    ref,
+                    args_to_string(job_def.args, job_def.kwargs),
+                    f" try={job_retry}" if job_retry > 1 else "",
+                )
             )
         try:
             task.job_def = job_def
@@ -250,7 +251,7 @@ class Worker:
             success = True
             finished_ms = timestamp_ms_now()
             if job_def.function != check_pending_msgs.__name__:
-                logger.info("%6.2fs ← %s ● %s", (finished_ms - start_ms) / 1000, ref, result)
+                logger.info("%6.2fs ← %s ● %s" % ((finished_ms - start_ms) / 1000, ref, result))
             finish = True
             self.jobs_complete += 1
             await self._xack(queue, msg_id)
@@ -282,12 +283,13 @@ class Worker:
         result_data: Optional[bytes],
         result_timeout_s: Optional[float],
     ) -> None:
-        p = self._redis.pipeline()
-        delete_keys = [in_progress_key_prefix + job_id]
+        redis = await self.get_redis()
+        p = redis.pipeline()
+        delete_keys = [IN_PROGRESS_KEY_PREFIX + job_id]
         if finish:
             if result_data:
-                p.setex(result_key_prefix + job_id, result_timeout_s, result_data)
-            delete_keys += [retry_key_prefix + job_id, job_key_prefix + job_id]
+                p.setex(RESULT_KEY_PREFIX + job_id, result_timeout_s, result_data)
+            delete_keys += [RETRY_KEY_PREFIX + job_id, JOB_KEY_PREFIX + job_id]
             p.delete(*delete_keys)
             await p.execute()
 
@@ -305,6 +307,7 @@ class Worker:
         start_ms: int,
         finish_ms: int,
     ):
+        redis = await self.get_redis()
         job_result = JobResult(
             success=success,
             result=msg,
@@ -318,41 +321,43 @@ class Worker:
             enqueue_ms=enqueue_ms,
             queue=queue,
         )
-        p = self._redis.pipeline()
+        p = redis.pipeline()
         p.delete(
-            retry_key_prefix + job_id, in_progress_key_prefix + job_id, job_key_prefix + job_id
+            RETRY_KEY_PREFIX + job_id, IN_PROGRESS_KEY_PREFIX + job_id, JOB_KEY_PREFIX + job_id
         )
         if self.keep_result_seconds > 0:
-            p.setex(result_key_prefix + job_id, self.keep_result_seconds, job_result.json())
+            p.setex(RESULT_KEY_PREFIX + job_id, self.keep_result_seconds, job_result.json())
         await p.execute()
 
-    def run(self):
+    async def _heartbeat(self):
         """
-        Run main task
-        :return:
+        keep alive in redis
         """
-        self._main_task = self.loop.create_task(self._main())
-        try:
-            self.loop.run_until_complete(self._main_task)
-        except asyncio.CancelledError:
-            pass
-        finally:
-            self.loop.run_until_complete(self.close())
+        redis = await self.get_redis()
 
-    async def async_run(self):
-        """
-        Asynchronously run the worker, does not close connections. Useful when testing.
-        """
+        while True:
+            if not self.consumer_name:
+                await asyncio.sleep(2)
+            value = {
+                "queue": self.queue,
+                "ts": datetime.datetime.now().timestamp(),
+                "jobs_complete": self.jobs_complete,
+                "jobs_running": len(self.tasks),
+                "jobs_failed": self.jobs_failed,
+                "jobs_retried": self.jobs_retried,
+            }
+            await redis.hset(constants.WORKER_KEY, self.consumer_name, value=json.dumps(value))
+            await asyncio.sleep(constants.WORKER_HEARTBEAT_SECONDS)
+
+    async def run(self):
         try:
-            await self._main()
+            await asyncio.gather(self._main(), self._heartbeat())
         except asyncio.CancelledError:
             pass
         finally:
             await self.close()
 
     async def close(self):
-        if not self._redis:
-            return
         await self.rearq.shutdown()
         await self.rearq.close()
 
@@ -376,8 +381,9 @@ class TimerWorker(Worker):
         run cron task
         :return:
         """
+        redis = await self.get_redis()
         cron_tasks = CronTask.get_cron_tasks()
-        p = self._redis.pipeline()
+        p = redis.pipeline()
         execute = False
         for function, task in cron_tasks.items():
             if timestamp_ms_now() >= task.next_run:
@@ -385,7 +391,7 @@ class TimerWorker(Worker):
                 if task.function.__name__ != check_pending_msgs.__name__:
                     logger.info(f"{task.function.__name__}()")
                 next_job_id = uuid4().hex
-                job_key = job_key_prefix + next_job_id
+                job_key = JOB_KEY_PREFIX + next_job_id
                 enqueue_ms = timestamp_ms_now()
                 p.psetex(
                     job_key,
@@ -405,19 +411,20 @@ class TimerWorker(Worker):
         execute and await p.execute()
 
     async def _poll_iteration(self):
+        redis = await self.get_redis()
         now = timestamp_ms_now()
-        jobs_id = await self._redis.zrangebyscore(
-            delay_queue, offset=0, count=self.queue_read_limit, max=now
+        jobs_id = await redis.zrangebyscore(
+            DELAY_QUEUE, offset=0, count=self.queue_read_limit, max=now
         )
         if not jobs_id:
             return
         else:
-            jobs_key = list(map(lambda x: job_key_prefix + x, jobs_id))
-        jobs = await self._redis.mget(*jobs_key) or []  # type:List[str]
-        p = self._redis.pipeline()
+            jobs_key = list(map(lambda x: JOB_KEY_PREFIX + x, jobs_id))
+        jobs = await redis.mget(*jobs_key) or []  # type:List[str]
+        p = redis.pipeline()
         for job in jobs:
             if job:
                 job_def = JobDef.parse_raw(job.encode())
                 p.xadd(job_def.queue, {"job_id": job_def.job_id})
-        p.zrem(delay_queue, *jobs_id)
+        p.zrem(DELAY_QUEUE, *jobs_id)
         await p.execute()

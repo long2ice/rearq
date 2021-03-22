@@ -1,10 +1,10 @@
-job_key_prefix = "rearq:job:"
-in_progress_key_prefix = "rearq:in-progress:"
-result_key_prefix = "rearq:result:"
-retry_key_prefix = "rearq:retry:"
-queue_key_prefix = "rearq:queue:"
-
-health_check_key_suffix = "rearq:health-check"
-
-default_queue: str = f"{queue_key_prefix}default"
-delay_queue = f"{queue_key_prefix}delay"
+JOB_KEY_PREFIX = "rearq:job:"
+IN_PROGRESS_KEY_PREFIX = "rearq:in-progress:"
+RESULT_KEY_PREFIX = "rearq:result:"
+RETRY_KEY_PREFIX = "rearq:retry:"
+QUEUE_KEY_PREFIX = "rearq:queue:"
+HEALTH_CHECK_KEY_SUFFIX = "rearq:health-check:"
+DEFAULT_QUEUE: str = f"{QUEUE_KEY_PREFIX}default"
+DELAY_QUEUE = f"{QUEUE_KEY_PREFIX}delay"
+WORKER_KEY = "rearq:worker"
+WORKER_HEARTBEAT_SECONDS = 10

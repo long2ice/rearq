@@ -5,10 +5,10 @@ from ssl import SSLContext
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import aioredis
-from aioredis import Redis
+from aioredis import ConnectionsPool, Redis
 from tortoise import Tortoise
 
-from rearq.constants import default_queue, delay_queue, queue_key_prefix
+from rearq.constants import DEFAULT_QUEUE, DELAY_QUEUE, QUEUE_KEY_PREFIX
 from rearq.exceptions import ConfigurationError, UsageError
 from rearq.server import models
 from rearq.task import CronTask, Task, check_pending_msgs
@@ -18,7 +18,7 @@ Deserializer = Callable[[bytes], Dict[str, Any]]
 
 
 class ReArq:
-    _redis: Optional[Redis] = None
+    _pool: Optional[ConnectionsPool] = None
     _task_map: Dict[str, Task] = {}
     _queue_task_map: Dict[str, List[str]] = {}
     _on_startup: Set[Callable] = set()
@@ -54,7 +54,7 @@ class ReArq:
         self.db_url = db_url
 
     async def init(self):
-        if self._redis:
+        if self._pool:
             return
 
         if type(self.redis_host) is str and self.sentinel:
@@ -65,25 +65,24 @@ class ReArq:
         if self.sentinel:
             addr = self.redis_host
 
-            async def pool_factory(*args: Any, **kwargs: Any) -> Redis:
+            async def pool_factory(*args: Any, **kwargs: Any) -> ConnectionsPool:
                 client = await aioredis.sentinel.create_sentinel_pool(*args, ssl=self.ssl, **kwargs)
                 return client.master_for(self.sentinel_master)
 
         else:
             pool_factory = functools.partial(aioredis.create_pool, ssl=self.ssl)
             addr = self.redis_host, self.redis_port
-        pool = await pool_factory(
+        self._pool = await pool_factory(
             addr, db=self.redis_db, password=self.redis_password, encoding="utf8"
         )
-        self._redis = Redis(pool)
 
         await Tortoise.init(db_url=self.db_url, modules={"models": [models]})
         await Tortoise.generate_schemas()
 
-    def get_redis(self) -> Redis:
-        if not self._redis:
+    async def get_redis(self):
+        if not self._pool:
             raise UsageError("You must call .init() first!")
-        return self._redis
+        return Redis(await self._pool.acquire())
 
     @property
     def task_map(self) -> Dict[str, Task]:
@@ -118,7 +117,7 @@ class ReArq:
 
         defaults = dict(
             function=func,
-            queue=queue_key_prefix + queue if queue else default_queue,
+            queue=QUEUE_KEY_PREFIX + queue if queue else DEFAULT_QUEUE,
             rearq=self,
             job_retry=self.job_retry,
             bind=bind,
@@ -176,11 +175,11 @@ class ReArq:
             await asyncio.gather(*tasks)
 
     async def close(self):
-        if not self._redis:
+        if not self._pool:
             return
-        self._redis.close()
-        await self._redis.wait_closed()
-        self._redis = None
+        self._pool.close()
+        await self._pool.wait_closed()
+        self._pool = None
 
     async def cancel(self, job_id: str):
         """
@@ -188,4 +187,4 @@ class ReArq:
         :param job_id:
         :return:
         """
-        return await self._redis.zrem(delay_queue, job_id)
+        return await self._pool.zrem(DELAY_QUEUE, job_id)

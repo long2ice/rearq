@@ -1,9 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
-    <canvas class="my-4 w-100" id="myChart" width="900" height="380"></canvas>
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">Task</th>
+            <th scope="col">Queue</th>
+            <th scope="col">Crontab</th>
+            <th scope="col">LastTime</th>
+            <th scope="col">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for task in tasks %}
+            <tr>
+                <td>{{ task.name }}</td>
+                <td>{{ task.queue }}</td>
+                <td><span class="badge bg-secondary">{{ task.cron }}</span></td>
+                <td></td>
+                <td>
+                    <button class="btn btn-primary btn-sm">Trigger</button>
+                    <button class="btn btn-dark btn-sm">Results</button>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 {% endblock %}
 {% block body_end %}
-    <script>
-        axios.get("/api/tasks");
-    </script>
 {% endblock %}

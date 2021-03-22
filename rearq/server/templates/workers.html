@@ -1,7 +1,50 @@
 {% extends "base.html" %}
 {% block content %}
-    <canvas class="my-4 w-100" id="myChart" width="900" height="380"></canvas>
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Queue</th>
+            <th scope="col">Complete</th>
+            <th scope="col">Failed</th>
+            <th scope="col">Retried</th>
+            <th scope="col">Running</th>
+            <th scope="col">LastAlive</th>
+            <th scope="col">Status</th>
+            <th scope="col">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for worker in workers %}
+            <tr>
+                <td>{{ worker.name }}</td>
+                <td>{{ worker.queue }}</td>
+                <td>{{ worker.jobs_complete }}</td>
+                <td>{{ worker.jobs_failed }}</td>
+                <td>{{ worker.jobs_retried }}</td>
+                <td>{{ worker.jobs_running }}</td>
+                <td>{{ worker.time }}</td>
+                <td>
+                    {% if worker.is_offline %}
+                        <span class="badge bg-danger">offline</span>
+                    {% else %}
+                        <span class="badge bg-success">online</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <button class="btn btn-danger btn-sm" onclick="delete_worker('{{ worker.name }}')">Remove</button>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 {% endblock %}
 {% block body_end %}
-    <script src="{{ url_for("static", path="/dashboard.js") }}"></script>
+    <script>
+        function delete_worker(name) {
+            axios.delete("/api/worker?name=" + name).then(res => {
+                location.reload();
+            });
+        }
+    </script>
 {% endblock %}

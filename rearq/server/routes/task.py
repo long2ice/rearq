@@ -8,6 +8,4 @@ router = APIRouter()
 
 @router.get("")
 async def get_tasks(rearq: ReArq = Depends(get_rearq)):
-    tasks = rearq.task_map
-    print(tasks)
-    return tasks
+    pass

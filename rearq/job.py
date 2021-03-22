@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional, Tuple
 from crontab import CronTab
 from pydantic import BaseModel
 
-from rearq.constants import in_progress_key_prefix, job_key_prefix, result_key_prefix
+from rearq.constants import IN_PROGRESS_KEY_PREFIX, JOB_KEY_PREFIX, RESULT_KEY_PREFIX
 from rearq.exceptions import SerializationError
 from rearq.utils import poll, timestamp_ms_now, to_ms_timestamp
 
@@ -85,7 +85,7 @@ class Job:
         """
         info: Optional[JobDef] = await self.result_info()
         if not info:
-            v = await self.redis.get(job_key_prefix + self.job_id, encoding=None)
+            v = await self.redis.get(JOB_KEY_PREFIX + self.job_id, encoding=None)
             if v:
                 info = JobDef.parse_raw(v)
         return info
@@ -95,7 +95,7 @@ class Job:
         Information about the job result if available, does not wait for the result. Does not raise an exception
         even if the job raised one.
         """
-        v = await self.redis.get(result_key_prefix + self.job_id, encoding=None)
+        v = await self.redis.get(RESULT_KEY_PREFIX + self.job_id, encoding=None)
         if v:
             return JobResult.parse_raw(v)
         else:
@@ -105,9 +105,9 @@ class Job:
         """
         Status of the job.
         """
-        if await self.redis.exists(result_key_prefix + self.job_id):
+        if await self.redis.exists(RESULT_KEY_PREFIX + self.job_id):
             return JobStatus.complete
-        elif await self.redis.exists(in_progress_key_prefix + self.job_id):
+        elif await self.redis.exists(IN_PROGRESS_KEY_PREFIX + self.job_id):
             return JobStatus.in_progress
         else:
             score = await self.redis.zscore(self.queue_name, self.job_id)
