@@ -1,7 +1,68 @@
 {% extends "base.html" %}
 {% block content %}
-    <canvas class="my-4 w-100" id="myChart" width="900" height="380"></canvas>
+    <form class="mb-3" action="/results">
+        <div class="row">
+            <div class="col">
+                <select id="task" name="task" class="form-select" aria-label="Tasks select">
+                    <option selected value="">Select task</option>
+                    {% for task in tasks %}
+                        <option value="{{ task }}" {% if task == current_task %}
+                                selected
+                        {% endif %} >{{ task }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col">
+                <input type="text" id="job_id" name="job_id" class="form-control" placeholder="Search by JobID...">
+            </div>
+            <div class="col">
+                <input type="datetime-local" name="start_time" id="start_time" class="form-control"
+                       placeholder="Task start time">
+            </div>
+            <div class="col">
+                <input type="datetime-local" name="finish_time" id="finish_time" class="form-control"
+                       placeholder="Task finish time">
+            </div>
+            <div class="col">
+                <button class="btn btn-primary" type="submit">Search</button>
+                <button class="btn btn-secondary" type="reset">Reset</button>
+            </div>
+        </div>
+    </form>
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Task</th>
+            <th scope="col">Args</th>
+            <th scope="col">Kwargs</th>
+            <th scope="col">JobRetry</th>
+            <th scope="col">EnqueueTime</th>
+            <th scope="col">JobID</th>
+            <th scope="col">Success</th>
+            <th scope="col">Result</th>
+            <th scope="col">StartTime</th>
+            <th scope="col">FinishTime</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for result in results %}
+            <tr>
+                <td>{{ result.id }}</td>
+                <td>{{ result.task }}</td>
+                <td>{{ result.args }}</td>
+                <td>{{ result.kwargs }}</td>
+                <td>{{ result.job_retry }}</td>
+                <td>{{ result.enqueue_time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                <td>{{ result.job_id }}</td>
+                <td>{{ result.success }}</td>
+                <td>{{ result.result }}</td>
+                <td>{{ result.start_time and result.start_time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                <td>{{ result.start_time and result.finish_time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 {% endblock %}
 {% block body_end %}
-    <script src="{{ url_for("static", path="/dashboard.js") }}"></script>
 {% endblock %}

@@ -8,6 +8,7 @@ from loguru import logger
 
 from rearq.constants import DELAY_QUEUE, JOB_KEY_PREFIX, RESULT_KEY_PREFIX
 from rearq.job import Job, JobDef
+from rearq.server.models import Result
 from rearq.utils import timestamp_ms_now, to_ms_timestamp
 
 
@@ -46,11 +47,9 @@ class Task:
             to_ms_timestamp(expires) if expires else defer_ts - enqueue_ms + self.expires_extra_ms
         )
         job_key = JOB_KEY_PREFIX + job_id
-        redis = await self.rearq.get_redis()
-        pipe = redis.pipeline()
-        pipe.exists(job_key)
-        pipe.exists(RESULT_KEY_PREFIX + job_id)
-        job_exists, job_result_exists = await pipe.execute()
+        redis = self.rearq.get_redis
+        job_exists = await redis.exists(job_key)
+        job_result_exists = self.rearq.enable_results and await Result.exists(job_id=job_id)
         if job_exists or job_result_exists:
             logger.warning(
                 f"Job {job_id} exists, job_exists={job_exists}, job_result_exists={job_result_exists}"
@@ -89,8 +88,7 @@ async def check_pending_msgs(
     check pending messages
     :return:
     """
-    rearq = self.rearq
-    redis = await rearq.get_redis()
+    redis = self.rearq.get_redis
     pending_msgs = await redis.xpending(self.queue, group_name, "-", "+", 10)
     p = redis.pipeline()
     execute = False

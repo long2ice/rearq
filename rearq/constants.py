@@ -1,3 +1,5 @@
+import os
+
 JOB_KEY_PREFIX = "rearq:job:"
 IN_PROGRESS_KEY_PREFIX = "rearq:in-progress:"
 RESULT_KEY_PREFIX = "rearq:result:"
@@ -8,3 +10,5 @@ DEFAULT_QUEUE: str = f"{QUEUE_KEY_PREFIX}default"
 DELAY_QUEUE = f"{QUEUE_KEY_PREFIX}delay"
 WORKER_KEY = "rearq:worker"
 WORKER_HEARTBEAT_SECONDS = 10
+TASK_LAST_TIME = "rearq:task_last_time"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

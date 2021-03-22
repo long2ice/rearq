@@ -11,13 +11,13 @@ router = APIRouter()
 
 @router.get("")
 async def get_job(job_id: str, queue: str = "default", rearq: ReArq = Depends(get_rearq)):
-    job = Job(await rearq.get_redis(), job_id, queue)
+    job = Job(rearq.get_redis, job_id, queue)
     return await job.info()
 
 
 @router.get("/result")
 async def get_job_result(job_id: str, queue: str = "default", rearq: ReArq = Depends(get_rearq)):
-    job = Job(await rearq.get_redis(), job_id, queue)
+    job = Job(rearq.get_redis, job_id, queue)
     return await job.result_info()
 
 
@@ -26,7 +26,7 @@ async def add_job(add_job_in: AddJobIn, rearq: ReArq = Depends(get_rearq)):
     task = rearq.task_map.get(add_job_in.task)
     if not task:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="No such task")
-    job = await task.delay(args=add_job_in.args, kwargs=add_job_in.kwargs, job_id=add_job_in.job_id)
+    job = await task.delay(**add_job_in.dict(exclude={"task"}))
     return await job.info()
 
 

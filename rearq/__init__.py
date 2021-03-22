@@ -19,6 +19,7 @@ Deserializer = Callable[[bytes], Dict[str, Any]]
 
 class ReArq:
     _pool: Optional[ConnectionsPool] = None
+    _redis: Optional[Redis] = None
     _task_map: Dict[str, Task] = {}
     _queue_task_map: Dict[str, List[str]] = {}
     _on_startup: Set[Callable] = set()
@@ -52,6 +53,7 @@ class ReArq:
         self.redis_password = redis_password
         self.redis_host = redis_host
         self.db_url = db_url
+        self._enable_results = False
 
     async def init(self):
         if self._pool:
@@ -75,14 +77,21 @@ class ReArq:
         self._pool = await pool_factory(
             addr, db=self.redis_db, password=self.redis_password, encoding="utf8"
         )
+        self._redis = Redis(self._pool)
+        if self.db_url:
+            await Tortoise.init(db_url=self.db_url, modules={"models": [models]})
+            await Tortoise.generate_schemas()
+            self._enable_results = True
 
-        await Tortoise.init(db_url=self.db_url, modules={"models": [models]})
-        await Tortoise.generate_schemas()
+    @property
+    def enable_results(self):
+        return self._enable_results
 
-    async def get_redis(self):
-        if not self._pool:
+    @property
+    def get_redis(self):
+        if not self._redis:
             raise UsageError("You must call .init() first!")
-        return Redis(await self._pool.acquire())
+        return self._redis
 
     @property
     def task_map(self) -> Dict[str, Task]:
@@ -180,6 +189,8 @@ class ReArq:
         self._pool.close()
         await self._pool.wait_closed()
         self._pool = None
+        if self._enable_results:
+            await Tortoise.close_connections()
 
     async def cancel(self, job_id: str):
         """
@@ -187,4 +198,4 @@ class ReArq:
         :param job_id:
         :return:
         """
-        return await self._pool.zrem(DELAY_QUEUE, job_id)
+        return await self._redis.zrem(DELAY_QUEUE, job_id)
