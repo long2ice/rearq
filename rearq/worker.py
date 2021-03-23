@@ -415,6 +415,7 @@ class TimerWorker(Worker):
                 )
                 p.xadd(task.queue, {"job_id": next_job_id})
                 p.hset(constants.TASK_LAST_TIME, function, enqueue_ms)
+                self.jobs_complete += 1
                 task.set_next()
         execute and await p.execute()
 

@@ -35,7 +35,7 @@ async def result(
         "result.html",
         {
             "request": request,
-            "page_title": "results",
+            "page_title": "result",
             "tasks": rearq.task_map.keys(),
             "current_task": task,
             "current_job_id": job_id,

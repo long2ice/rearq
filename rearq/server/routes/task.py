@@ -35,7 +35,7 @@ async def get_tasks(request: Request, rearq: ReArq = Depends(get_rearq)):
             tasks.append(item)
     return templates.TemplateResponse(
         "task.html",
-        {"request": request, "page_title": "tasks", "tasks": tasks, "cron_tasks": cron_tasks},
+        {"request": request, "page_title": "task", "tasks": tasks, "cron_tasks": cron_tasks},
     )
 
 

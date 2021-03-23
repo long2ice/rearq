@@ -28,7 +28,7 @@ async def get_workers(request: Request, rearq: ReArq = Depends(get_rearq)):
         ).seconds > constants.WORKER_HEARTBEAT_SECONDS + 10
         workers.append(item)
     return templates.TemplateResponse(
-        "worker.html", {"request": request, "page_title": "workers", "workers": workers}
+        "worker.html", {"request": request, "page_title": "worker", "workers": workers}
     )
 
 
