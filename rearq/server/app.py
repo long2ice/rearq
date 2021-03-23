@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from starlette.staticfiles import StaticFiles
 
 from .. import constants
-from .routes import api_router, view_router
+from .routes import router
 
 app = FastAPI(title="API docs of rearq")
 app.mount(
@@ -12,5 +12,4 @@ app.mount(
     StaticFiles(directory=os.path.join(constants.BASE_DIR, "rearq", "server", "static")),
     name="static",
 )
-app.include_router(view_router)
-app.include_router(api_router, prefix="/api")
+app.include_router(router)

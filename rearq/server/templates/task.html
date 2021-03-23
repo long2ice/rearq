@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">Task</th>
+            <th scope="col">Queue</th>
+            <th scope="col">LastTime</th>
+            <th scope="col">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for task in tasks %}
+            <tr>
+                <td>{{ task.name }}</td>
+                <td>{{ task.queue }}</td>
+                <td>{% if task.last_time %}
+                    {{ task.last_time.strftime("%Y-%m-%d %H:%M:%S") }}
+                {% else %}
+                    Never Run
+                {% endif %} </td>
+                <td>{% include "widgets/task_actions.html" %}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">CronTasks</h1>
+    </div>
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">Task</th>
+            <th scope="col">Queue</th>
+            <th scope="col">Crontab</th>
+            <th scope="col">LastTime</th>
+            <th scope="col">NextTime</th>
+            <th scope="col">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for task in cron_tasks %}
+            <tr>
+                <td>{{ task.name }}</td>
+                <td>{{ task.queue }}</td>
+                <td><span class="badge bg-secondary">{{ task.cron }}</span></td>
+                <td>{% if task.last_time %}
+                    {{ task.last_time.strftime("%Y-%m-%d %H:%M:%S") }}
+                {% else %}
+                    Never Run
+                {% endif %} </td>
+                <td>{{ task.next_time }}</td>
+                <td>{% include "widgets/task_actions.html" %}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+{% block body_end %}
+    <script>
+        function run_task(task_name) {
+            let data = {
+                task: task_name,
+            }
+            let args = $('#args-' + task_name).val()
+            if (args !== "") {
+                args = JSON.parse(args)
+                data.args = args;
+            }
+            let kwargs = $('#kwargs-' + task_name).val()
+            if (kwargs !== "") {
+                kwargs = JSON.parse(kwargs);
+                data.kwargs = kwargs;
+            }
+            let job_id = $('#job-id-' + task_name).val()
+            if (job_id !== "") {
+                data.job_id = job_id;
+            }
+            let countdown = $('#countdown-' + task_name).val()
+            if (countdown !== "") {
+                data.countdown = countdown;
+            }
+            let eta = $('#eta-' + task_name).val()
+            if (eta !== "") {
+                data.eta = eta;
+            }
+            let expires = $('#expires-' + task_name).val()
+            if (expires !== "") {
+                data.expires = expires;
+            }
+            let job_retry = $('#job-retry-' + task_name).val()
+            if (job_retry !== "") {
+                data.job_retry = job_retry;
+            }
+            $.ajax({
+                url: '/task',
+                method: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                dataType: 'json',
+                success: res => {
+                    swal({
+                        icon: "success",
+                        text: "JobID: " + res.job_id
+                    });
+                },
+                complete: () => {
+                    $('#run-' + task_name).modal('toggle');
+                }
+            })
+        }
+    </script>
+{% endblock %}

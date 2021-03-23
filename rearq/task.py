@@ -49,7 +49,7 @@ class Task:
         job_key = JOB_KEY_PREFIX + job_id
         redis = self.rearq.get_redis
         job_exists = await redis.exists(job_key)
-        job_result_exists = self.rearq.enable_results and await Result.exists(job_id=job_id)
+        job_result_exists = await Result.exists(job_id=job_id)
         if job_exists or job_result_exists:
             logger.warning(
                 f"Job {job_id} exists, job_exists={job_exists}, job_result_exists={job_result_exists}"

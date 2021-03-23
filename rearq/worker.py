@@ -24,6 +24,7 @@ from rearq.constants import (
     RETRY_KEY_PREFIX,
 )
 from rearq.job import JobDef, JobResult
+from rearq.server.models import Result
 from rearq.task import check_pending_msgs
 from rearq.utils import args_to_string, poll, timestamp_ms_now
 
@@ -40,7 +41,6 @@ class Worker:
         self.group_name = group_name or "default"
         self.consumer_name = None
         self.job_timeout = rearq.job_timeout
-        self.keep_result_seconds = rearq.keep_result_seconds
         self.max_jobs = rearq.max_jobs
         self.rearq = rearq
         self._redis = rearq.get_redis
@@ -215,7 +215,7 @@ class Worker:
             )
         start_ms = timestamp_ms_now()
         result = no_result
-        if job_def.function != check_pending_msgs.__name__:
+        if not self.is_check_task(job_def.function):
             logger.info(
                 "%6.2fs → %s(%s)%s"
                 % (
@@ -229,7 +229,7 @@ class Worker:
         try:
             task.job_def = job_def
             async with async_timeout.timeout(self.job_timeout):
-                if job_def.function == check_pending_msgs.__name__:
+                if self.is_check_task(job_def.function):
                     result = await task.function(
                         task, self.queue, self.group_name, self.consumer_name, self.job_timeout
                     )
@@ -245,20 +245,18 @@ class Worker:
 
         except Exception as e:
             success = False
-            finish = False
             finished_ms = 0
             self.jobs_failed += 1
-            logger.error(f"Run task error, function: {job_def.function}, e: {e}", exc_info=True)
+            logger.error(f"Run task error, function: {job_def.function}, e: {e}")
         else:
             success = True
             finished_ms = timestamp_ms_now()
-            if job_def.function != check_pending_msgs.__name__:
+            if not self.is_check_task(job_def.function):
                 logger.info("%6.2fs ← %s ● %s" % ((finished_ms - start_ms) / 1000, ref, result))
-            finish = True
             self.jobs_complete += 1
             await self._xack(queue, msg_id)
-        if result is not no_result and self.keep_result_seconds > 0:
-            result_data = JobResult(
+        if result is not no_result:
+            job_result = JobResult(
                 success=success,
                 result=result,
                 start_ms=start_ms,
@@ -272,28 +270,16 @@ class Worker:
                 queue=job_def.queue,
             )
 
-            await asyncio.shield(
-                self.finish_job(
-                    job_id, finish, result_data.json().encode(), self.keep_result_seconds
-                )
-            )
+            await asyncio.shield(self.finish_job(job_result))
 
-    async def finish_job(
-        self,
-        job_id: str,
-        finish: bool,
-        result_data: Optional[bytes],
-        result_timeout_s: Optional[float],
-    ) -> None:
+    async def finish_job(self, job_result: Optional[JobResult],) -> None:
+        job_id = job_result.job_id
         redis = self._redis
-        p = redis.pipeline()
         delete_keys = [IN_PROGRESS_KEY_PREFIX + job_id]
-        if finish:
-            if result_data:
-                p.setex(RESULT_KEY_PREFIX + job_id, result_timeout_s, result_data)
+        if job_result.success:
             delete_keys += [RETRY_KEY_PREFIX + job_id, JOB_KEY_PREFIX + job_id]
-            p.delete(*delete_keys)
-            await p.execute()
+            await redis.delete(*delete_keys)
+            await self.create_job_result(job_result)
 
     async def abort_job(
         self,
@@ -310,6 +296,9 @@ class Worker:
         finish_ms: int,
     ):
         redis = self._redis
+        await redis.delete(
+            RETRY_KEY_PREFIX + job_id, IN_PROGRESS_KEY_PREFIX + job_id, JOB_KEY_PREFIX + job_id
+        )
         job_result = JobResult(
             success=success,
             result=msg,
@@ -323,13 +312,27 @@ class Worker:
             enqueue_ms=enqueue_ms,
             queue=queue,
         )
-        p = redis.pipeline()
-        p.delete(
-            RETRY_KEY_PREFIX + job_id, IN_PROGRESS_KEY_PREFIX + job_id, JOB_KEY_PREFIX + job_id
-        )
-        if self.keep_result_seconds > 0:
-            p.setex(RESULT_KEY_PREFIX + job_id, self.keep_result_seconds, job_result.json())
-        await p.execute()
+        await self.create_job_result(job_result)
+
+    @classmethod
+    def is_check_task(cls, function: str):
+        return function == check_pending_msgs.__name__
+
+    @classmethod
+    async def create_job_result(cls, job_result: JobResult):
+        if not cls.is_check_task(job_result.function):
+            await Result.create(
+                task=job_result.function,
+                args=job_result.args,
+                kwargs=job_result.kwargs,
+                job_retry=job_result.job_retry,
+                enqueue_time=datetime.datetime.fromtimestamp(job_result.enqueue_ms / 10 ** 3),
+                job_id=job_result.job_id,
+                success=job_result.success,
+                result=job_result.result,
+                start_time=datetime.datetime.fromtimestamp(job_result.start_ms / 10 ** 3),
+                finish_time=datetime.datetime.fromtimestamp(job_result.finish_ms / 10 ** 3),
+            )
 
     async def _heartbeat(self):
         """
@@ -392,7 +395,7 @@ class TimerWorker(Worker):
         for function, task in cron_tasks.items():
             if timestamp_ms_now() >= task.next_run:
                 execute = True
-                if task.function.__name__ != check_pending_msgs.__name__:
+                if not self.is_check_task(task.function):
                     logger.info(f"{task.function.__name__}()")
                 next_job_id = uuid4().hex
                 job_key = JOB_KEY_PREFIX + next_job_id

@@ -27,6 +27,7 @@ class ReArq:
 
     def __init__(
         self,
+        db_url: str,
         redis_host: Union[str, List[Tuple[str, int]]] = "127.0.0.1",
         redis_port: int = 6379,
         redis_password: Optional[str] = None,
@@ -36,12 +37,9 @@ class ReArq:
         sentinel_master: str = "master",
         job_retry: int = 3,
         max_jobs: int = 10,
-        keep_result_seconds: int = 3600,
         job_timeout: int = 300,
-        db_url: str = None,
     ):
         self.job_timeout = job_timeout
-        self.keep_result_seconds = keep_result_seconds
         self.max_jobs = max_jobs
         self.job_retry = job_retry
 
@@ -53,7 +51,6 @@ class ReArq:
         self.redis_password = redis_password
         self.redis_host = redis_host
         self.db_url = db_url
-        self._enable_results = False
 
     async def init(self):
         if self._pool:
@@ -78,14 +75,9 @@ class ReArq:
             addr, db=self.redis_db, password=self.redis_password, encoding="utf8"
         )
         self._redis = Redis(self._pool)
-        if self.db_url:
-            await Tortoise.init(db_url=self.db_url, modules={"models": [models]})
-            await Tortoise.generate_schemas()
-            self._enable_results = True
 
-    @property
-    def enable_results(self):
-        return self._enable_results
+        await Tortoise.init(db_url=self.db_url, modules={"models": [models]})
+        await Tortoise.generate_schemas()
 
     @property
     def get_redis(self):
@@ -189,8 +181,7 @@ class ReArq:
         self._pool.close()
         await self._pool.wait_closed()
         self._pool = None
-        if self._enable_results:
-            await Tortoise.close_connections()
+        await Tortoise.close_connections()
 
     async def cancel(self, job_id: str):
         """

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-    <form class="mb-3" action="/results">
+    <form class="mb-3" action="/result">
         <div class="row">
             <div class="col">
                 <select id="task" name="task" class="form-select" aria-label="Tasks select">
@@ -13,14 +13,17 @@
                 </select>
             </div>
             <div class="col">
-                <input type="text" id="job_id" name="job_id" class="form-control" placeholder="Search by JobID...">
+                <input type="text" id="job_id" name="job_id" value="{{ current_job_id or '' }}" class="form-control"
+                       placeholder="Search by JobID...">
             </div>
             <div class="col">
-                <input type="datetime-local" name="start_time" id="start_time" class="form-control"
+                <input type="datetime-local" name="start_time" value="{{ current_start_time or '' }}" id="start_time"
+                       class="form-control"
                        placeholder="Task start time">
             </div>
             <div class="col">
-                <input type="datetime-local" name="finish_time" id="finish_time" class="form-control"
+                <input type="datetime-local" name="finish_time" value="{{ current_finish_time or '' }}" id="finish_time"
+                       class="form-control"
                        placeholder="Task finish time">
             </div>
             <div class="col">
