@@ -334,6 +334,22 @@ class Worker:
                 finish_time=datetime.datetime.fromtimestamp(job_result.finish_ms / 10 ** 3),
             )
 
+    async def _push_heartbeat(self, is_offline: bool = False):
+        value = {
+            "queue": self.queue,
+            "jobs_complete": self.jobs_complete,
+            "jobs_running": len(self.tasks),
+            "jobs_failed": self.jobs_failed,
+            "jobs_retried": self.jobs_retried,
+            "is_timer": isinstance(self, TimerWorker),
+        }
+        if is_offline:
+            ts = 0
+        else:
+            ts = datetime.datetime.now().timestamp()
+        value.update({"ts": ts})
+        await self._redis.hset(constants.WORKER_KEY, self.consumer_name, value=json.dumps(value))
+
     async def _heartbeat(self):
         """
         keep alive in redis
@@ -341,17 +357,7 @@ class Worker:
         while True:
             if not self.consumer_name:
                 await asyncio.sleep(2)
-            value = {
-                "queue": self.queue,
-                "ts": datetime.datetime.now().timestamp(),
-                "jobs_complete": self.jobs_complete,
-                "jobs_running": len(self.tasks),
-                "jobs_failed": self.jobs_failed,
-                "jobs_retried": self.jobs_retried,
-            }
-            await self._redis.hset(
-                constants.WORKER_KEY, self.consumer_name, value=json.dumps(value)
-            )
+            await self._push_heartbeat()
             await asyncio.sleep(constants.WORKER_HEARTBEAT_SECONDS)
 
     async def run(self):
@@ -360,6 +366,7 @@ class Worker:
         except asyncio.CancelledError:
             pass
         finally:
+            await self._push_heartbeat(True)
             await self.close()
 
     async def close(self):
@@ -383,6 +390,22 @@ class TimerWorker(Worker):
             await self._poll_iteration()
             await self.run_cron()
 
+    async def run(self):
+        workers_info = await self._redis.hgetall(constants.WORKER_KEY)
+        for worker_name, value in workers_info.items():
+            value = json.loads(value)
+            time = datetime.datetime.fromtimestamp(value["ts"])
+            is_offline = (
+                datetime.datetime.now() - time
+            ).seconds > constants.WORKER_HEARTBEAT_SECONDS + 10
+            if value.get("is_timer") and not is_offline:
+                logger.error(
+                    f"There is a timer worker `{worker_name}` already, you could only start one timer worker"
+                )
+                break
+        else:
+            await super(TimerWorker, self).run()
+
     async def run_cron(self):
         """
         run cron task
@@ -395,7 +418,7 @@ class TimerWorker(Worker):
         for function, task in cron_tasks.items():
             if timestamp_ms_now() >= task.next_run:
                 execute = True
-                if not self.is_check_task(task.function):
+                if not self.is_check_task(task.function.__name__):
                     logger.info(f"{task.function.__name__}()")
                 next_job_id = uuid4().hex
                 job_key = JOB_KEY_PREFIX + next_job_id

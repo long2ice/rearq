@@ -46,6 +46,10 @@ body {
     color: #333;
 }
 
+.sidebar .nav-item:hover {
+    background-color: #e5e5e5;
+}
+
 .sidebar .nav-link .feather {
     margin-right: 4px;
     color: #727272;
@@ -55,7 +59,6 @@ body {
     color: #007bff;
 }
 
-.sidebar .nav-link:hover .feather,
 .sidebar .nav-link.active .feather {
     color: inherit;
 }

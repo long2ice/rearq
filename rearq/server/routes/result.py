@@ -11,36 +11,34 @@ from rearq.server.models import Result
 router = APIRouter()
 
 
-@router.get("")
-async def result(
-    request: Request,
-    rearq: ReArq = Depends(get_rearq),
+@router.get("/data")
+async def get_results(
     task: Optional[str] = None,
     job_id: Optional[str] = None,
     start_time: Optional[str] = None,
     end_time: Optional[str] = None,
     pager=Depends(get_pager),
 ):
-    qs = Result.all().limit(pager[0]).offset(pager[1])
+    limit = pager[0]
+    offset = pager[1]
+    qs = Result.all()
     if task:
         qs = qs.filter(task=task)
     if job_id:
         qs = qs.filter(job_id=job_id)
     if start_time:
-        qs = qs.filter(start_time=start_time)
+        qs = qs.filter(start_time__gte=start_time)
     if end_time:
-        qs = qs.filter(end_time=end_time)
-    results = await qs
+        qs = qs.filter(end_time__lte=end_time)
+    results = await qs.limit(limit).offset(offset)
+    return {"rows": results, "total": await qs.count()}
+
+
+@router.get("")
+async def result(
+    request: Request, rearq: ReArq = Depends(get_rearq),
+):
     return templates.TemplateResponse(
         "result.html",
-        {
-            "request": request,
-            "page_title": "result",
-            "tasks": rearq.task_map.keys(),
-            "current_task": task,
-            "current_job_id": job_id,
-            "current_start_time": start_time,
-            "current_end_time": end_time,
-            "results": results,
-        },
+        {"request": request, "page_title": "result", "tasks": rearq.task_map.keys(),},
     )

@@ -1,71 +1,79 @@
 {% extends "base.html" %}
 {% block content %}
-    <form class="mb-3" action="/result">
-        <div class="row">
+    <form class="mb-3" id="toolbar">
+        <div class="row" role="form">
             <div class="col">
                 <select id="task" name="task" class="form-select" aria-label="Tasks select">
                     <option selected value="">Select task</option>
                     {% for task in tasks %}
-                        <option value="{{ task }}" {% if task == current_task %}
-                                selected
-                        {% endif %} >{{ task }}</option>
+                        <option value="{{ task }}">{{ task }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="col">
-                <input type="text" id="job_id" name="job_id" value="{{ current_job_id or '' }}" class="form-control"
+                <input type="text" id="job_id" name="job_id" class="form-control"
                        placeholder="Search by JobID...">
             </div>
             <div class="col">
-                <input type="datetime-local" name="start_time" value="{{ current_start_time or '' }}" id="start_time"
+                <input type="datetime-local" name="start_time" id="start_time"
                        class="form-control"
                        placeholder="Task start time">
             </div>
             <div class="col">
-                <input type="datetime-local" name="finish_time" value="{{ current_finish_time or '' }}" id="finish_time"
+                <input type="datetime-local" name="finish_time" id="finish_time"
                        class="form-control"
                        placeholder="Task finish time">
             </div>
             <div class="col">
-                <button class="btn btn-primary" type="submit">Search</button>
+                <button class="btn btn-primary" type="button" id="search-btn">Search</button>
                 <button class="btn btn-secondary" type="reset">Reset</button>
             </div>
         </div>
     </form>
-    <table class="table">
+    <table id="table" data-toggle="table" data-click-to-select="true" data-pagination="true"
+           data-side-pagination="server"
+           data-url="/result/data" data-query-params="queryParams">
         <thead>
         <tr>
-            <th scope="col">ID</th>
-            <th scope="col">Task</th>
-            <th scope="col">Args</th>
-            <th scope="col">Kwargs</th>
-            <th scope="col">JobRetry</th>
-            <th scope="col">EnqueueTime</th>
-            <th scope="col">JobID</th>
-            <th scope="col">Success</th>
-            <th scope="col">Result</th>
-            <th scope="col">StartTime</th>
-            <th scope="col">FinishTime</th>
+            <th data-field="state" data-checkbox="true"></th>
+            <th data-field="id">ID</th>
+            <th data-field="task">Task</th>
+            <th data-field="args">Args</th>
+            <th data-field="kwargs">Kwargs</th>
+            <th data-field="job_retry">JobRetry</th>
+            <th data-field="enqueue_time" data-formatter="timeFormatter">EnqueueTime</th>
+            <th data-field="job_id">JobID</th>
+            <th data-field="success">Success</th>
+            <th data-field="result">Result</th>
+            <th data-field="start_time" data-formatter="timeFormatter">StartTime</th>
+            <th data-field="finish_time" data-formatter="timeFormatter">FinishTime</th>
         </tr>
         </thead>
-        <tbody>
-        {% for result in results %}
-            <tr>
-                <td>{{ result.id }}</td>
-                <td>{{ result.task }}</td>
-                <td>{{ result.args }}</td>
-                <td>{{ result.kwargs }}</td>
-                <td>{{ result.job_retry }}</td>
-                <td>{{ result.enqueue_time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
-                <td>{{ result.job_id }}</td>
-                <td>{{ result.success }}</td>
-                <td>{{ result.result }}</td>
-                <td>{{ result.start_time and result.start_time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
-                <td>{{ result.start_time and result.finish_time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
-            </tr>
-        {% endfor %}
-        </tbody>
     </table>
 {% endblock %}
 {% block body_end %}
+    <script src="https://cdn.jsdelivr.net/npm/luxon@1.26.0/build/global/luxon.min.js"></script>
+    <script>
+        let table = $('#table')
+        let search = $('#search-btn')
+        let DateTime = luxon.DateTime;
+
+        function timeFormatter(value, row) {
+            return DateTime.fromISO(value).toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS);
+        }
+
+        $(function () {
+            search.click(function () {
+                table.bootstrapTable('refresh')
+            })
+        })
+
+        function queryParams(params) {
+            $('#toolbar').find('input[name],select[name]').each(function () {
+                params[$(this).attr('name')] = $(this).val()
+            })
+            return params
+        }
+
+    </script>
 {% endblock %}

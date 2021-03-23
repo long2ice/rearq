@@ -9,6 +9,8 @@
     <link href="{{ url_for('static', path='/index.css') }}" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://unpkg.com/sweetalert@2.1.2/dist/sweetalert.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.18.2/dist/bootstrap-table.min.css">
+    <script src="https://unpkg.com/bootstrap-table@1.18.2/dist/bootstrap-table.min.js"></script>
     {% block head %}
     {% endblock %}
 </head>
@@ -28,19 +30,19 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if page_title == 'workers' %}active{% endif %}" href="/worker">
+                        <a class="nav-link {% if page_title == 'worker' %}active{% endif %}" href="/worker">
                             <span data-feather="briefcase"></span>
                             Worker
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if page_title == 'tasks' %}active{% endif %}" href="/task">
+                        <a class="nav-link {% if page_title == 'task' %}active{% endif %}" href="/task">
                             <span data-feather="inbox"></span>
                             Task
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if page_title == 'results' %}active{% endif %}" href="/result">
+                        <a class="nav-link {% if page_title == 'result' %}active{% endif %}" href="/result">
                             <span data-feather="file-text"></span>
                             Result
                         </a>

@@ -10,7 +10,7 @@
             <th scope="col">Retried</th>
             <th scope="col">Running</th>
             <th scope="col">LastAlive</th>
-            <th scope="col">Status</th>
+            <th scope="col">Information</th>
             <th scope="col">Actions</th>
         </tr>
         </thead>
@@ -30,6 +30,8 @@
                     {% else %}
                         <span class="badge bg-success">online</span>
                     {% endif %}
+                    <span class="badge bg-primary">{% if worker.is_timer %}timer{% else %}
+                        worker{% endif %}</span>
                 </td>
                 <td>
                     <button class="btn btn-danger btn-sm" onclick="delete_worker('{{ worker.name }}')">Remove</button>
