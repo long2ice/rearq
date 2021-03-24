@@ -28,6 +28,7 @@ async def get_tasks(request: Request, rearq: ReArq = Depends(get_rearq)):
             item["last_time"] = ms_to_datetime(int(task_last_time.get(task_name)))
         if isinstance(task, CronTask):
             item["cron"] = task.cron
+            task.set_next()
             item["next_time"] = ms_to_datetime(task.next_run)
             cron_tasks.append(item)
         else:

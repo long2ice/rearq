@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 
+from .index import router as views_router
 from .job import router as job_router
 from .result import router as result_router
 from .task import router as task_router
-from .views import router as views_router
 from .worker import router as worker_router
 
 router = APIRouter()

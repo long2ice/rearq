@@ -38,8 +38,8 @@ async def get_results(
 
 
 @router.delete("")
-async def delete_result(ids: List[int]):
-    await Result.filter(id__in=ids).delete()
+async def delete_result(ids: str):
+    return await Result.filter(id__in=ids.split(",")).delete()
 
 
 @router.get("")

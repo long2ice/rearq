@@ -42,6 +42,7 @@
     <table id="table" class="table" data-classes="" data-toggle="table" data-click-to-select="true"
            data-pagination="true"
            data-side-pagination="server"
+           data-pagination-loop="false"
            data-url="/result/data" data-query-params="queryParams">
         <thead>
         <tr>
@@ -54,7 +55,7 @@
             <th data-field="job_retry">JobRetry</th>
             <th data-field="enqueue_time" data-formatter="timeFormatter">EnqueueTime</th>
             <th data-field="job_id">JobID</th>
-            <th data-field="success">Success</th>
+            <th data-field="success" data-formatter="booleanFormatter">Success</th>
             <th data-field="result">Result</th>
             <th data-field="start_time" data-formatter="timeFormatter">StartTime</th>
             <th data-field="finish_time" data-formatter="timeFormatter">FinishTime</th>
@@ -65,13 +66,29 @@
 {% block body_end %}
     <script>
         let table = $('#table')
+        let urlParams = new URLSearchParams(window.location.search);
+        let task = urlParams.get('task');
+        let worker = urlParams.get('worker');
+        if (task) {
+            $('#task').val(task);
+        }
+        if (worker) {
+            $('#worker').val(worker);
+        }
+
+        function booleanFormatter(value, row) {
+            if (value) {
+                return `<span class="badge bg-success">${value}</span>`;
+            } else {
+                return `<span class="badge bg-danger">${value}</span>`;
+            }
+        }
 
         $(function () {
             $('#search-btn').click(function () {
                 table.bootstrapTable('refresh')
-            })
-        })
-        $(function () {
+            });
+
             $('#remove-btn').click(function () {
                 let ids = $.map(table.bootstrapTable('getSelections'), function (row) {
                     return row.id
@@ -79,17 +96,23 @@
                 $.ajax({
                     url: "/result?ids=" + ids,
                     method: 'DELETE',
-                    success: res=> {
-                        table.bootstrapTable('remove', {field: 'id', values: ids})
+                    success: res => {
+                        table.bootstrapTable('remove', {field: 'id', values: ids});
+                        table.bootstrapTable('refresh');
                     },
-                    error: res=> {
-                        // TODO
+                    error: res => {
+                        swal({
+                            icon: "error",
+                            title: "Delete failed",
+                        });
                     }
                 })
             })
         })
 
         function queryParams(params) {
+            params.task = task;
+            params.worker = worker;
             $('#toolbar').find('input[name],select[name]').each(function () {
                 params[$(this).attr('name')] = $(this).val()
             })

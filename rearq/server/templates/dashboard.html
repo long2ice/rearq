@@ -1,55 +1,35 @@
 {% extends "base.html" %}
+{% block head %}
+    <style>
+        .card {
+            flex-basis: 0;
+        }
+    </style>
+{% endblock %}
 {% block content %}
-    <div class="row">
-        <div class="col">
-            <div class="card mb-3">
-                <div class="row g-0">
-                    <div class="col-md-4">
-                        <img src="..." alt="...">
-                    </div>
-                    <div class="col-md-8">
-                        <div class="card-body">
-                            <h5 class="card-title">Task Num</h5>
-                            <p class="card-text">This is a wider card with supporting text below as a natural lead-in to
-                                additional content. This content is a little bit longer.</p>
-                            <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p>
-                        </div>
-                    </div>
-                </div>
+    <div class="d-flex justify-content-center">
+        <div class="flex-grow-1 card text-white bg-primary me-3">
+            <div class="card-header">Task Num</div>
+            <div class="card-body">
+                <h5 class="card-title">{{ task_num }}</h5>
+                <p class="card-text">All task num</p>
+                <a href="/task" class="stretched-link"></a>
             </div>
         </div>
-        <div class="col">
-            <div class="card mb-3">
-                <div class="row g-0">
-                    <div class="col-md-4">
-                        <img src="..." alt="...">
-                    </div>
-                    <div class="col-md-8">
-                        <div class="card-body">
-                            <h5 class="card-title">Run Times</h5>
-                            <p class="card-text">This is a wider card with supporting text below as a natural lead-in to
-                                additional content. This content is a little bit longer.</p>
-                            <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p>
-                        </div>
-                    </div>
-                </div>
+        <div class="flex-grow-1 card text-white bg-success me-3">
+            <div class="card-header">Run Times</div>
+            <div class="card-body">
+                <h5 class="card-title">{{ run_times }}</h5>
+                <p class="card-text">All task run times</p>
+                <a href="/result" class="stretched-link"></a>
             </div>
         </div>
-        <div class="col">
-            <div class="card mb-3">
-                <div class="row g-0">
-                    <div class="col-md-4">
-                        <img src="..." alt="...">
-                    </div>
-                    <div class="col-md-8">
-                        <div class="card-body">
-                            <h5 class="card-title">Worker Num</h5>
-                            <p class="card-text">This is a wider card with supporting text below as a natural lead-in to
-                                additional content. This content is a little bit longer.</p>
-                            <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p>
-                        </div>
-                    </div>
-                </div>
+        <div class="flex-grow-1 card text-white bg-secondary">
+            <div class="card-header">Worker Num</div>
+            <div class="card-body">
+                <h5 class="card-title">{{ worker_num }}</h5>
+                <p class="card-text">All worker num, include timer worker</p>
+                <a href="/worker" class="stretched-link"></a>
             </div>
         </div>
     </div>
