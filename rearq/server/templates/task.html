@@ -14,8 +14,8 @@
             <tr>
                 <td>{{ task.name }}</td>
                 <td>{{ task.queue }}</td>
-                <td>{% if task.last_time %}
-                    {{ task.last_time.strftime("%Y-%m-%d %H:%M:%S") }}
+                <td class="time-format">{% if task.last_time %}
+                    {{ task.last_time }}
                 {% else %}
                     Never Run
                 {% endif %} </td>
@@ -44,12 +44,12 @@
                 <td>{{ task.name }}</td>
                 <td>{{ task.queue }}</td>
                 <td><span class="badge bg-secondary">{{ task.cron }}</span></td>
-                <td>{% if task.last_time %}
-                    {{ task.last_time.strftime("%Y-%m-%d %H:%M:%S") }}
+                <td class="time-format">{% if task.last_time %}
+                    {{ task.last_time }}
                 {% else %}
                     Never Run
                 {% endif %} </td>
-                <td>{{ task.next_time }}</td>
+                <td class="time-format">{{ task.next_time }}</td>
                 <td>{% include "widgets/task_actions.html" %}</td>
             </tr>
         {% endfor %}

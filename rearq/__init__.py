@@ -76,7 +76,7 @@ class ReArq:
         )
         self._redis = Redis(self._pool)
 
-        await Tortoise.init(db_url=self.db_url, modules={"models": [models]})
+        await Tortoise.init(db_url=self.db_url, modules={"models": [models]}, use_tz=True)
         await Tortoise.generate_schemas()
 
     @property

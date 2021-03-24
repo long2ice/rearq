@@ -23,7 +23,7 @@
                 <td>{{ worker.jobs_failed }}</td>
                 <td>{{ worker.jobs_retried }}</td>
                 <td>{{ worker.jobs_running }}</td>
-                <td>{{ worker.time.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                <td class="time-format">{{ worker.time }}</td>
                 <td>
                     {% if worker.is_offline %}
                         <span class="badge bg-danger">offline</span>
@@ -36,7 +36,7 @@
                 <td>
                     <button class="btn btn-danger btn-sm" onclick="delete_worker('{{ worker.name }}')">Remove</button>
                     <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#logs-{{ worker.name }}"
-                            onclick="show_logs('{{ worker.name }}',$(this))">Logs
+                            onclick="show_logs('{{ worker.name }}',$(this))">Log
                     </button>
                     <div class="modal fade" id="logs-{{ worker.name }}" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-scrollable modal-xl">

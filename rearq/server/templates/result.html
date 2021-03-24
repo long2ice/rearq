@@ -3,40 +3,51 @@
     <form class="mb-3" id="toolbar">
         <div class="row" role="form">
             <div class="col">
-                <select id="task" name="task" class="form-select" aria-label="Tasks select">
-                    <option selected value="">Select task</option>
+                <select id="task" name="task" class="form-select form-select-sm" aria-label="Task select">
+                    <option selected value="">Select Task</option>
                     {% for task in tasks %}
                         <option value="{{ task }}">{{ task }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="col">
-                <input type="text" id="job_id" name="job_id" class="form-control"
+                <select id="worker" name="worker" class="form-select form-select-sm" aria-label="Worker select">
+                    <option selected value="">Select Worker</option>
+                    {% for worker in workers %}
+                        <option value="{{ worker }}">{{ worker }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col">
+                <input type="text" id="job_id" name="job_id" class="form-control form-control-sm"
                        placeholder="Search by JobID...">
             </div>
             <div class="col">
                 <input type="datetime-local" name="start_time" id="start_time"
-                       class="form-control"
+                       class="form-control form-control-sm"
                        placeholder="Task start time">
             </div>
             <div class="col">
                 <input type="datetime-local" name="finish_time" id="finish_time"
-                       class="form-control"
+                       class="form-control form-control-sm"
                        placeholder="Task finish time">
             </div>
             <div class="col">
-                <button class="btn btn-primary" type="button" id="search-btn">Search</button>
-                <button class="btn btn-secondary" type="reset">Reset</button>
+                <button class="btn btn-primary btn-sm" type="button" id="search-btn">Search</button>
+                <button class="btn btn-secondary btn-sm" type="reset">Reset</button>
+                <button class="btn btn-danger btn-sm" type="button" id="remove-btn">Remove</button>
             </div>
         </div>
     </form>
-    <table id="table" data-toggle="table" data-click-to-select="true" data-pagination="true"
+    <table id="table" class="table" data-classes="" data-toggle="table" data-click-to-select="true"
+           data-pagination="true"
            data-side-pagination="server"
            data-url="/result/data" data-query-params="queryParams">
         <thead>
         <tr>
             <th data-field="state" data-checkbox="true"></th>
             <th data-field="id">ID</th>
+            <th data-field="worker">Worker</th>
             <th data-field="task">Task</th>
             <th data-field="args">Args</th>
             <th data-field="kwargs">Kwargs</th>
@@ -52,19 +63,29 @@
     </table>
 {% endblock %}
 {% block body_end %}
-    <script src="https://cdn.jsdelivr.net/npm/luxon@1.26.0/build/global/luxon.min.js"></script>
     <script>
         let table = $('#table')
-        let search = $('#search-btn')
-        let DateTime = luxon.DateTime;
-
-        function timeFormatter(value, row) {
-            return DateTime.fromISO(value).toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS);
-        }
 
         $(function () {
-            search.click(function () {
+            $('#search-btn').click(function () {
                 table.bootstrapTable('refresh')
+            })
+        })
+        $(function () {
+            $('#remove-btn').click(function () {
+                let ids = $.map(table.bootstrapTable('getSelections'), function (row) {
+                    return row.id
+                });
+                $.ajax({
+                    url: "/result?ids=" + ids,
+                    method: 'DELETE',
+                    success: res=> {
+                        table.bootstrapTable('remove', {field: 'id', values: ids})
+                    },
+                    error: res=> {
+                        // TODO
+                    }
+                })
             })
         })
 

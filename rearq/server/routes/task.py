@@ -8,6 +8,7 @@ from rearq import CronTask, ReArq, constants
 from rearq.server import templates
 from rearq.server.depends import get_rearq
 from rearq.server.schemas import AddJobIn
+from rearq.utils import ms_to_datetime
 
 router = APIRouter()
 
@@ -24,12 +25,10 @@ async def get_tasks(request: Request, rearq: ReArq = Depends(get_rearq)):
             "queue": task.queue,
         }
         if task_last_time.get(task_name):
-            item["last_time"] = datetime.datetime.fromtimestamp(
-                int(task_last_time.get(task_name)) / 1000
-            )
+            item["last_time"] = ms_to_datetime(int(task_last_time.get(task_name)))
         if isinstance(task, CronTask):
             item["cron"] = task.cron
-            item["next_time"] = datetime.datetime.fromtimestamp(task.next_run / 1000)
+            item["next_time"] = ms_to_datetime(task.next_run)
             cron_tasks.append(item)
         else:
             tasks.append(item)

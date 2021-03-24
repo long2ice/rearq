@@ -10,7 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://unpkg.com/sweetalert@2.1.2/dist/sweetalert.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.18.2/dist/bootstrap-table.min.css">
-    <script src="https://unpkg.com/bootstrap-table@1.18.2/dist/bootstrap-table.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@1.26.0/build/global/luxon.min.js"></script>
     {% block head %}
     {% endblock %}
 </head>
@@ -70,8 +70,27 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"
         integrity="sha384-zNy6FEbO50N+Cg5wap8IKA4M/ZnLJgzc6w2NqACZaK0u0FXfOWRRJOnQtpZun8ha"
         crossorigin="anonymous"></script>
+<script src="https://unpkg.com/bootstrap-table@1.18.2/dist/bootstrap-table.min.js"></script>
 <script>
     feather.replace();
+    const DateTime = luxon.DateTime;
+
+    function timeFormatter(value, row) {
+        let parsed = DateTime.fromSQL($.trim(value));
+        if (parsed.invalid) {
+            parsed = DateTime.fromISO($.trim(value));
+            if (parsed.invalid) {
+                return value;
+            }
+        }
+        return parsed.toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS);
+    }
+
+    $('.time-format').each(function (index, elem) {
+        let text = $(elem).text();
+        let ret = timeFormatter(text);
+        $(elem).text(ret);
+    })
 </script>
 {% block body_end %}
 {% endblock %}

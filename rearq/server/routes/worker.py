@@ -5,10 +5,12 @@ import os
 import aiofiles
 from fastapi import APIRouter, Depends
 from starlette.requests import Request
+from tortoise import timezone
 
 from rearq import ReArq, constants
 from rearq.server import templates
 from rearq.server.depends import get_rearq
+from rearq.utils import ms_to_datetime
 
 router = APIRouter()
 
@@ -21,10 +23,10 @@ async def get_workers(request: Request, rearq: ReArq = Depends(get_rearq)):
     for worker_name, value in workers_info.items():
         item = {"name": worker_name}
         item.update(json.loads(value))
-        time = datetime.datetime.fromtimestamp(item["ts"])
+        time = ms_to_datetime(item["ms"])
         item["time"] = time
         item["is_offline"] = (
-            datetime.datetime.now() - time
+            timezone.now() - time
         ).seconds > constants.WORKER_HEARTBEAT_SECONDS + 10
         workers.append(item)
     return templates.TemplateResponse(

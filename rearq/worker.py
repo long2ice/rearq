@@ -12,6 +12,7 @@ from aioredis import MultiExecError
 from aioredis.errors import BusyGroupError
 from loguru import logger
 from pydantic import ValidationError
+from tortoise import timezone
 
 from rearq import CronTask, constants
 from rearq.constants import (
@@ -20,13 +21,12 @@ from rearq.constants import (
     IN_PROGRESS_KEY_PREFIX,
     JOB_KEY_PREFIX,
     QUEUE_KEY_PREFIX,
-    RESULT_KEY_PREFIX,
     RETRY_KEY_PREFIX,
 )
 from rearq.job import JobDef, JobResult
 from rearq.server.models import Result
 from rearq.task import check_pending_msgs
-from rearq.utils import args_to_string, poll, timestamp_ms_now
+from rearq.utils import args_to_string, ms_to_datetime, poll, timestamp_ms_now
 
 Serializer = Callable[[Dict[str, Any]], bytes]
 Deserializer = Callable[[bytes], Dict[str, Any]]
@@ -89,18 +89,12 @@ class Worker:
         )
 
     async def _main(self) -> None:
+        logger.add(f"logs/worker-{self.consumer_name}.log", rotation="00:00")
+        logger.info(f"Start worker success with queue: {self.queue}")
+        logger.info(f"Registered tasks: {', '.join(self.register_tasks)}")
         await self.log_redis_info()
         await self.rearq.startup()
         with await self._redis as redis:
-            try:
-                await redis.xgroup_create(self.queue, self.group_name, latest_id="$", mkstream=True)
-            except BusyGroupError:
-                pass
-            length = len(await redis.xinfo_groups(self.queue))
-            self.consumer_name = f"{self.group_name}-{length}"
-            logger.add(f"logs/worker-{self.consumer_name}.log", rotation="00:00")
-            logger.info(f"Start worker success with queue: {self.queue}")
-            logger.info(f"Registered tasks: {', '.join(self.register_tasks)}")
             while True:
                 msgs = await redis.xread_group(
                     self.group_name,
@@ -318,20 +312,20 @@ class Worker:
     def is_check_task(cls, function: str):
         return function == check_pending_msgs.__name__
 
-    @classmethod
-    async def create_job_result(cls, job_result: JobResult):
-        if not cls.is_check_task(job_result.function):
+    async def create_job_result(self, job_result: JobResult):
+        if not self.is_check_task(job_result.function):
             await Result.create(
                 task=job_result.function,
+                worker=self.consumer_name,
                 args=job_result.args,
                 kwargs=job_result.kwargs,
                 job_retry=job_result.job_retry,
-                enqueue_time=datetime.datetime.fromtimestamp(job_result.enqueue_ms / 10 ** 3),
+                enqueue_time=ms_to_datetime(job_result.enqueue_ms),
                 job_id=job_result.job_id,
                 success=job_result.success,
                 result=job_result.result,
-                start_time=datetime.datetime.fromtimestamp(job_result.start_ms / 10 ** 3),
-                finish_time=datetime.datetime.fromtimestamp(job_result.finish_ms / 10 ** 3),
+                start_time=ms_to_datetime(job_result.start_ms),
+                finish_time=ms_to_datetime(job_result.finish_ms),
             )
 
     async def _push_heartbeat(self, is_offline: bool = False):
@@ -344,10 +338,10 @@ class Worker:
             "is_timer": isinstance(self, TimerWorker),
         }
         if is_offline:
-            ts = 0
+            ms = 0
         else:
-            ts = datetime.datetime.now().timestamp()
-        value.update({"ts": ts})
+            ms = timestamp_ms_now()
+        value.update({"ms": ms})
         await self._redis.hset(constants.WORKER_KEY, self.consumer_name, value=json.dumps(value))
 
     async def _heartbeat(self):
@@ -355,12 +349,18 @@ class Worker:
         keep alive in redis
         """
         while True:
-            if not self.consumer_name:
-                await asyncio.sleep(2)
             await self._push_heartbeat()
             await asyncio.sleep(constants.WORKER_HEARTBEAT_SECONDS)
 
     async def run(self):
+        try:
+            await self._redis.xgroup_create(
+                self.queue, self.group_name, latest_id="$", mkstream=True
+            )
+        except BusyGroupError:
+            pass
+        length = len(await self._redis.xinfo_groups(self.queue))
+        self.consumer_name = f"{self.group_name}-{length}"
         try:
             await asyncio.gather(self._main(), self._heartbeat())
         except asyncio.CancelledError:
@@ -394,10 +394,8 @@ class TimerWorker(Worker):
         workers_info = await self._redis.hgetall(constants.WORKER_KEY)
         for worker_name, value in workers_info.items():
             value = json.loads(value)
-            time = datetime.datetime.fromtimestamp(value["ts"])
-            is_offline = (
-                datetime.datetime.now() - time
-            ).seconds > constants.WORKER_HEARTBEAT_SECONDS + 10
+            time = ms_to_datetime(value["ms"])
+            is_offline = (timezone.now() - time).seconds > constants.WORKER_HEARTBEAT_SECONDS + 10
             if value.get("is_timer") and not is_offline:
                 logger.error(
                     f"There is a timer worker `{worker_name}` already, you could only start one timer worker"

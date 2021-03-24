@@ -1,8 +1,9 @@
 import asyncio
-import os
 import time
 from datetime import datetime, timedelta
 from typing import Any, AsyncGenerator, Dict, Sequence, Union
+
+from tortoise import timezone
 
 
 def to_ms_timestamp(value: Union[None, int, float, timedelta, datetime]):
@@ -33,7 +34,7 @@ def ms_to_datetime(ms: int) -> datetime:
     :param ms:
     :return:
     """
-    return datetime.fromtimestamp(ms / 1000)
+    return datetime.fromtimestamp(ms / 1000, timezone.get_default_timezone())
 
 
 async def poll(step: float = 0.5) -> AsyncGenerator[float, None]:
