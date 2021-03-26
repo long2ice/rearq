@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import json
 import signal
+import socket
 from functools import partial
 from signal import Signals
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
@@ -10,6 +11,7 @@ from uuid import uuid4
 import async_timeout
 from aioredis import MultiExecError
 from aioredis.errors import BusyGroupError
+from aioredlock import Aioredlock
 from loguru import logger
 from pydantic import ValidationError
 from tortoise import timezone
@@ -37,13 +39,20 @@ no_result = object()
 class Worker:
     _task_map = {}
 
-    def __init__(self, rearq, queue: Optional[str] = None, group_name: Optional[str] = None):
-        self.group_name = group_name or "default"
-        self.consumer_name = None
+    def __init__(
+        self,
+        rearq,
+        queue: Optional[str] = None,
+        group_name: Optional[str] = None,
+        consumer_name: Optional[str] = None,
+    ):
+        self.group_name = group_name or socket.gethostname()
+        self.consumer_name = consumer_name
         self.job_timeout = rearq.job_timeout
         self.max_jobs = rearq.max_jobs
         self.rearq = rearq
         self._redis = rearq.get_redis
+        self._lock_manager = Aioredlock([(rearq.redis_host, rearq.redis_port)])
         self.register_tasks = rearq.get_queue_tasks(queue)
         if queue:
             self.queue = QUEUE_KEY_PREFIX + queue
@@ -359,8 +368,13 @@ class Worker:
             )
         except BusyGroupError:
             pass
-        length = len(await self._redis.xinfo_groups(self.queue))
-        self.consumer_name = f"{self.group_name}-{length}"
+        async with await self._lock_manager.lock(constants.WORKER_KEY_LOCK):
+            workers = await self._redis.hgetall(constants.WORKER_KEY)
+            length = len(
+                list(filter(lambda item: not json.loads(item[1]).get("is_timer"), workers.items()))
+            )
+            self.consumer_name = f"{self.group_name}-{length}"
+            await self._push_heartbeat()
         try:
             await asyncio.gather(self._main(), self._heartbeat())
         except asyncio.CancelledError:

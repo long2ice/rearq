@@ -46,16 +46,19 @@ async def cli(ctx: Context, rearq: str, verbose):
 @cli.command(help="Start rearq worker.")
 @click.option("-q", "--queue", required=False, help="Queue to consume.")
 @click.option("-t", "--timer", default=False, is_flag=True, help="Start a timer worker.")
-@click.option("--name", required=False, help="Worker name.")
+@click.option(
+    "--group-name", required=False, help="Group name.",
+)
+@click.option("--consumer-name", required=False, help="Consumer name.")
 @click.pass_context
 @coro
-async def worker(ctx: Context, queue: str, timer: bool, name: str):
+async def worker(ctx: Context, queue: str, timer: bool, group_name: str, consumer_name: str):
     rearq = ctx.obj["rearq"]
     await rearq.init()
     if timer:
-        w = TimerWorker(rearq, queue=queue, group_name=name)
+        w = TimerWorker(rearq, queue=queue, group_name=group_name, consumer_name=consumer_name)
     else:
-        w = Worker(rearq, queue=queue, group_name=name)
+        w = Worker(rearq, queue=queue, group_name=group_name, consumer_name=consumer_name)
     await w.run()
 
 

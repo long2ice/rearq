@@ -28,6 +28,7 @@ aiofiles = "*"
 tortoise-orm = "*"
 asyncmy = { version = "*", optional = true }
 asyncpg = { version = "*", optional = true }
+aioredlock = "*"
 
 [tool.poetry.dev-dependencies]
 flake8 = "*"

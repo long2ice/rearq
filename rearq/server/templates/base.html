@@ -50,7 +50,6 @@
                 </ul>
             </div>
         </nav>
-
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">{{ page_title|title }}</h1>
@@ -61,8 +60,12 @@
         </main>
         <footer class="footer py-3 ps-5 bg-light position-absolute bottom-0">
             <div class="container">
-                <span class="text-muted">Powered by <a href="https://github.com/long2ice/rearq"
-                                                       class="fs-6">ReArq</a></span>
+                <span class="text-muted">Powered by <span class="fw-bold">ReArq</span> v{{ REAEQ_VERSION }}</span>
+                <span class="text-muted position-absolute py-3 pe-3 bottom-0 end-0">
+                    <span class="pe-3 fw-bold">Copyright © 2020-{{ NOW_YEAR }}</span>
+                    <a href="https://github.com/long2ice" class="text-decoration-none pe-3">long2ice</a>
+                    <a class="text-decoration-none pe-3" href="https://github.com/long2ice/rearq">Github</a>
+                </span>
             </div>
         </footer>
     </div>

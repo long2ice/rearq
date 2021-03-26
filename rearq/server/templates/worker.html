@@ -30,8 +30,11 @@
                     {% else %}
                         <span class="badge bg-success">online</span>
                     {% endif %}
-                    <span class="badge bg-primary">{% if worker.is_timer %}timer{% else %}
-                        worker{% endif %}</span>
+                    {% if worker.is_timer %}
+                        <span class="badge bg-info">timer</span>
+                    {% else %}
+                        <span class="badge bg-primary">worker</span>
+                    {% endif %}
                 </td>
                 <td>
                     <button class="btn btn-danger btn-sm" onclick="delete_worker('{{ worker.name }}')">Remove</button>

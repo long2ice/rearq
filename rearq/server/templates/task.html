@@ -43,7 +43,7 @@
             <tr>
                 <td>{{ task.name }}</td>
                 <td>{{ task.queue }}</td>
-                <td><span class="badge bg-secondary">{{ task.cron }}</span></td>
+                <td><span class="badge bg-info">{{ task.cron }}</span></td>
                 <td class="time-format">{% if task.last_time %}
                     {{ task.last_time }}
                 {% else %}
