@@ -16,6 +16,9 @@ jobs:
     steps:
       - name: Start MySQL
         run: sudo systemctl start mysql.service
+      - name: Create Database
+        run: |
+          mysql -uroot -h127.0.0.1 -proot -e 'CREATE DATABASE IF NOT EXISTS test;'
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
