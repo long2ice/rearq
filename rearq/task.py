@@ -6,7 +6,7 @@ from aioredis.commands import MultiExec
 from crontab import CronTab
 from loguru import logger
 
-from rearq.constants import DELAY_QUEUE, JOB_KEY_PREFIX, RESULT_KEY_PREFIX
+from rearq.constants import DELAY_QUEUE, JOB_KEY_PREFIX
 from rearq.job import Job, JobDef
 from rearq.server.models import Result
 from rearq.utils import timestamp_ms_now, to_ms_timestamp
