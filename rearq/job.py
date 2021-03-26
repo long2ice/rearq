@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from rearq.constants import IN_PROGRESS_KEY_PREFIX, JOB_KEY_PREFIX, RESULT_KEY_PREFIX
 from rearq.exceptions import SerializationError
+from rearq.server.models import Result
 from rearq.utils import poll, timestamp_ms_now, to_ms_timestamp
 
 
@@ -29,7 +30,7 @@ class JobStatus(str, Enum):
 
 
 class JobDef(BaseModel):
-    function: str
+    task: str
     args: Optional[Tuple[Any, ...]] = None
     kwargs: Optional[Dict[Any, Any]] = None
     job_retry: int
@@ -83,23 +84,19 @@ class Job:
         """
         All information on a job, including its result if it's available, does not wait for the result.
         """
-        info: Optional[JobDef] = await self.result_info()
+        info = await self.result_info()
         if not info:
             v = await self.redis.get(JOB_KEY_PREFIX + self.job_id, encoding=None)
             if v:
                 info = JobDef.parse_raw(v)
         return info
 
-    async def result_info(self) -> Optional[JobResult]:
+    async def result_info(self) -> Optional[Result]:
         """
         Information about the job result if available, does not wait for the result. Does not raise an exception
         even if the job raised one.
         """
-        v = await self.redis.get(RESULT_KEY_PREFIX + self.job_id, encoding=None)
-        if v:
-            return JobResult.parse_raw(v)
-        else:
-            return None
+        return await Result.get_or_none(job_id=self.job_id)
 
     async def status(self) -> JobStatus:
         """

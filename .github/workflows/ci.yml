@@ -1,7 +1,7 @@
-name: test
+name: ci
 on: [push, pull_request]
 jobs:
-  pytest:
+  ci:
     runs-on: ubuntu-latest
     services:
       redis:
@@ -14,6 +14,8 @@ jobs:
         ports:
           - 6379:6379
     steps:
+      - name: Start MySQL
+        run: sudo systemctl start mysql.service
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
@@ -22,5 +24,5 @@ jobs:
         uses: snok/install-poetry@v1.1.1
         with:
           virtualenvs-create: false
-      - name: test
-        run: make test
+      - name: CI
+        run: make ci

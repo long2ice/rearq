@@ -438,7 +438,7 @@ class TimerWorker(Worker):
                     job_key,
                     task.expires_extra_ms,
                     JobDef(
-                        function=function,
+                        task=function,
                         args=None,
                         kwargs=None,
                         job_retry=self.job_retry,

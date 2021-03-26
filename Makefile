@@ -22,3 +22,5 @@ test: deps
 
 build: deps
 	@poetry build
+
+ci: deps check test

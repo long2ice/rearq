@@ -61,7 +61,7 @@ class Task:
             job_key,
             expires_ms,
             JobDef(
-                function=self.function.__name__,
+                task=self.function.__name__,
                 args=args,
                 kwargs=kwargs,
                 job_retry=job_retry or self.job_retry,

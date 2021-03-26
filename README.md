@@ -18,8 +18,16 @@ and make improvement.
 
 Just install from pypi:
 
+Use MySQL backend:
+
 ```shell
-> pip install rearq
+> pip install rearq[mysql]
+```
+
+Use PostgreSQL backend:
+
+```shell
+> pip install rearq[postgres]
 ```
 
 ## Quick Start
@@ -30,7 +38,7 @@ Just install from pypi:
 # main.py
 from rearq import ReArq
 
-rearq = ReArq()
+rearq = ReArq(db_url='mysql://root:123456@127.0.0.1:3306/rearq')
 
 
 @rearq.on_shutdown
@@ -104,11 +112,9 @@ async def test():
     return job.info()
 ```
 
-## Restful api and gui
+## Start server
 
-There are several apis and gui to control rearq.
-
-### Start server
+You can start the web server.
 
 ```shell
 > rearq main:rearq server
@@ -122,29 +128,8 @@ Options:
   -h, --help          Show this message and exit..
 ```
 
-### API docs
-
-After server run, you can visit [https://127.0.0.1:8080/docs](https://127.0.0.1:8080/docs) to get all apis.
-
-### GET `/job`
-
-Get job information.
-
-### POST `/job`
-
-Add a job for a task.
-
-### DELETE `/job`
-
-Cancel a delay task.
-
-### GET `/job/result`
-
-Get job result.
-
-## Documentation
-
-> Writing...
+After server run, you can visit [https://127.0.0.1:8000/docs](https://127.0.0.1:8000/docs) to see all apis
+and [https://127.0.0.1:8000](https://127.0.0.1:8000) to see web interface.
 
 ## ThanksTo
 
