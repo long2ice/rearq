@@ -1,6 +1,9 @@
 # Rearq
 
-![pypi](https://img.shields.io/pypi/v/rearq.svg?style=flat)
+[![image](https://img.shields.io/pypi/v/rearq.svg?style=flat)](https://pypi.python.org/pypi/rearq)
+[![image](https://img.shields.io/github/license/long2ice/rearq)](https://github.com/long2ice/rearq)
+[![image](https://github.com/long2ice/rearq/workflows/pypi/badge.svg)](https://github.com/long2ice/rearq/actions?query=workflow:pypi)
+[![image](https://github.com/long2ice/rearq/workflows/ci/badge.svg)](https://github.com/long2ice/rearq/actions?query=workflow:ci)
 
 ## Introduction
 

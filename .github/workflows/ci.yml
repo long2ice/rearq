@@ -1,5 +1,5 @@
 name: ci
-on: [push, pull_request]
+on: [ push, pull_request ]
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -25,4 +25,6 @@ jobs:
         with:
           virtualenvs-create: false
       - name: CI
+        env:
+          MYSQL_PASS: root
         run: make ci
