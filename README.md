@@ -9,10 +9,10 @@ and make improvement.
 
 ## Screenshots
 
-![](./images/dashboard.png)
-![](./images/worker.png)
-![](./images/task.png)
-![](./images/result.png)
+![dashboard](./images/dashboard.png)
+![worker](./images/worker.png)
+![task](./images/task.png)
+![result](./images/result.png)
 
 ## Install
 
@@ -124,7 +124,7 @@ Usage: rearq server [OPTIONS]
 
 Options:
   --host TEXT         Listen host.  [default: 0.0.0.0]
-  -p, --port INTEGER  Listen port.  [default: 8080]
+  -p, --port INTEGER  Listen port.  [default: 8000]
   -h, --help          Show this message and exit..
 ```
 

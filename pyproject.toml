@@ -38,6 +38,7 @@ pytest = "*"
 pytest-xdist = "*"
 bandit = "*"
 pytest-asyncio = "*"
+cryptography = "*"
 
 [tool.poetry.extras]
 postgres = ["asyncpg"]

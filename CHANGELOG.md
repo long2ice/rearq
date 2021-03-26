@@ -4,7 +4,7 @@
 
 ### 0.2.1
 
-- Add web gui.
+- Add web interface.
 
 ### 0.2.0
 
