@@ -36,13 +36,14 @@ class ReArq:
         sentinel: bool = False,
         sentinel_master: str = "master",
         job_retry: int = 3,
+        job_retry_after: int = 60,
         max_jobs: int = 10,
         job_timeout: int = 300,
     ):
         self.job_timeout = job_timeout
         self.max_jobs = max_jobs
         self.job_retry = job_retry
-
+        self.job_retry_after = job_retry_after
         self.sentinel = sentinel
         self.ssl = ssl
         self.sentinel_master = sentinel_master
@@ -80,7 +81,7 @@ class ReArq:
         await Tortoise.generate_schemas()
 
     @property
-    def get_redis(self):
+    def redis(self):
         if not self._redis:
             raise UsageError("You must call .init() first!")
         return self._redis
@@ -104,6 +105,8 @@ class ReArq:
         queue: Optional[str] = None,
         cron: Optional[str] = None,
         name: Optional[str] = None,
+        job_retry: Optional[int] = None,
+        job_retry_after: Optional[int] = None,
     ):
 
         if not callable(func):
@@ -120,7 +123,8 @@ class ReArq:
             function=func,
             queue=QUEUE_KEY_PREFIX + queue if queue else DEFAULT_QUEUE,
             rearq=self,
-            job_retry=self.job_retry,
+            job_retry=job_retry or self.job_retry,
+            job_retry_after=job_retry_after or self.job_retry_after,
             bind=bind,
         )
         if cron:
@@ -137,9 +141,11 @@ class ReArq:
         queue: Optional[str] = None,
         cron: Optional[str] = None,
         name: Optional[str] = None,
+        job_retry: Optional[int] = None,
+        job_retry_after: Optional[int] = None,
     ):
         def wrapper(func: Callable):
-            return self.create_task(bind, func, queue, cron, name)
+            return self.create_task(bind, func, queue, cron, name, job_retry, job_retry_after)
 
         return wrapper
 

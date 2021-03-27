@@ -93,15 +93,22 @@
                 data.job_retry = job_retry;
             }
             $.ajax({
-                url: '/task',
+                url: '/job',
                 method: 'POST',
                 data: JSON.stringify(data),
                 contentType: 'application/json',
                 dataType: 'json',
                 success: res => {
                     swal({
+                        title: 'Run task success',
                         icon: "success",
-                        text: "JobID: " + res.job_id
+                        content: {
+                            element: "a",
+                            attributes: {
+                                href: "/job?job_id=" + res.job_id,
+                                text: "JobID: " + res.job_id,
+                            },
+                        }
                     });
                 },
                 complete: () => {

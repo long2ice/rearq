@@ -42,6 +42,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if page_title == 'job' %}active{% endif %}" href="/job">
+                            <span data-feather="clock"></span>
+                            Job
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if page_title == 'result' %}active{% endif %}" href="/result">
                             <span data-feather="file-text"></span>
                             Result
@@ -58,7 +64,7 @@
 
             {% endblock %}
         </main>
-        <footer class="footer py-3 ps-5 bg-light position-absolute bottom-0">
+        <footer class="footer py-3 ps-5 bg-light bottom-0 position-absolute">
             <div class="container">
                 <span class="text-muted">Powered by <span class="fw-bold">ReArq</span> v{{ REAEQ_VERSION }}</span>
                 <span class="text-muted position-absolute py-3 pe-3 bottom-0 end-0">

@@ -16,7 +16,7 @@ router = APIRouter()
 
 @router.get("")
 async def get_workers(request: Request, rearq: ReArq = Depends(get_rearq)):
-    redis = rearq.get_redis
+    redis = rearq.redis
     workers_info = await redis.hgetall(constants.WORKER_KEY)
     workers = []
     for worker_name, value in workers_info.items():
@@ -35,7 +35,7 @@ async def get_workers(request: Request, rearq: ReArq = Depends(get_rearq)):
 
 @router.delete("")
 async def delete_worker(name: str, rearq: ReArq = Depends(get_rearq)):
-    redis = rearq.get_redis
+    redis = rearq.redis
     return await redis.hdel(constants.WORKER_KEY, name)
 
 

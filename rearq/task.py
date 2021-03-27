@@ -2,23 +2,29 @@ import datetime
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 from uuid import uuid4
 
-from aioredis.commands import MultiExec
 from crontab import CronTab
 from loguru import logger
+from tortoise import timezone
 
-from rearq.constants import DELAY_QUEUE, JOB_KEY_PREFIX
-from rearq.job import Job, JobDef
-from rearq.server.models import Result
+from rearq.constants import DELAY_QUEUE
+from rearq.job import JobStatus
+from rearq.server.models import Job
 from rearq.utils import timestamp_ms_now, to_ms_timestamp
 
 
 class Task:
-    expires_extra_ms = 86_400_000
-    job_def: JobDef
-
-    def __init__(self, bind: bool, function: Callable, queue: str, rearq, job_retry: int):
+    def __init__(
+        self,
+        bind: bool,
+        function: Callable,
+        queue: str,
+        rearq,
+        job_retry: int,
+        job_retry_after: int,
+    ):
 
         self.job_retry = job_retry
+        self.job_retry_after = job_retry_after
         self.queue = queue
         self.rearq = rearq
         self.function = function
@@ -31,9 +37,9 @@ class Task:
         job_id: str = None,
         countdown: Union[float, datetime.timedelta] = 0,
         eta: Optional[datetime.datetime] = None,
-        expires: Optional[Union[float, datetime.datetime]] = None,
         job_retry: int = 0,
-    ):
+        job_retry_after: int = 60,
+    ) -> Job:
         if not job_id:
             job_id = uuid4().hex
         if countdown:
@@ -42,43 +48,33 @@ class Task:
             defer_ts = to_ms_timestamp(eta)
         else:
             defer_ts = timestamp_ms_now()
-        enqueue_ms = timestamp_ms_now()
-        expires_ms = (
-            to_ms_timestamp(expires) if expires else defer_ts - enqueue_ms + self.expires_extra_ms
-        )
-        job_key = JOB_KEY_PREFIX + job_id
-        redis = self.rearq.get_redis
-        job_exists = await redis.exists(job_key)
-        job_result_exists = await Result.exists(job_id=job_id)
-        if job_exists or job_result_exists:
-            logger.warning(
-                f"Job {job_id} exists, job_exists={job_exists}, job_result_exists={job_result_exists}"
-            )
-            return Job(redis, job_id, self.queue,)
 
-        p = redis.pipeline()  # type:MultiExec
-        p.psetex(
-            job_key,
-            expires_ms,
-            JobDef(
-                task=self.function.__name__,
-                args=args,
-                kwargs=kwargs,
-                job_retry=job_retry or self.job_retry,
-                enqueue_ms=enqueue_ms,
-                queue=self.queue,
-                job_id=job_id,
-            ).json(),
+        job = await Job.get_or_none(job_id=job_id)
+        if job:
+            logger.warning(f"Job {job_id} exists")
+            return job
+
+        job = Job(
+            task=self.function.__name__,
+            args=args,
+            kwargs=kwargs,
+            job_retry=job_retry or self.job_retry,
+            queue=self.queue,
+            job_id=job_id,
+            enqueue_time=timezone.now(),
+            job_retry_after=job_retry_after,
         )
 
         if not eta and not countdown:
-            p.xadd(self.queue, {"job_id": job_id})
+            job.status = JobStatus.queued
+            await job.save()
+            await self.rearq.redis.xadd(self.queue, {"job_id": job_id})
         else:
-            p.zadd(DELAY_QUEUE, defer_ts, job_id)
+            job.status = JobStatus.deferred
+            await job.save()
+            await self.rearq.redis.zadd(DELAY_QUEUE, defer_ts, f"{self.queue}:{job_id}")
 
-        await p.execute()
-
-        return Job(redis, job_id, self.queue,)
+        return job
 
 
 async def check_pending_msgs(
@@ -88,7 +84,7 @@ async def check_pending_msgs(
     check pending messages
     :return:
     """
-    redis = self.rearq.get_redis
+    redis = self.rearq.redis
     pending_msgs = await redis.xpending(self.queue, group_name, "-", "+", 10)
     p = redis.pipeline()
     execute = False
@@ -106,9 +102,16 @@ class CronTask(Task):
     next_run: int
 
     def __init__(
-        self, bind: bool, function: Callable, queue: str, rearq, job_retry: int, cron: str
+        self,
+        bind: bool,
+        function: Callable,
+        queue: str,
+        rearq,
+        job_retry: int,
+        job_retry_after: int,
+        cron: str,
     ):
-        super().__init__(bind, function, queue, rearq, job_retry)
+        super().__init__(bind, function, queue, rearq, job_retry, job_retry_after)
         self.crontab = CronTab(cron)
         self.cron = cron
         self.set_next()
@@ -123,6 +126,3 @@ class CronTask(Task):
     @classmethod
     def get_cron_tasks(cls):
         return cls._cron_tasks
-
-    def __repr__(self) -> str:
-        return f"<rearq CronTask {self.function}>"

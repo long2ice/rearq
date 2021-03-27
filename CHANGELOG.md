@@ -2,6 +2,11 @@
 
 ## 0.2
 
+### 0.2.2
+
+- Add job_retry_after.
+- Improve web ui.
+
 ### 0.2.1
 
 - Add web interface.

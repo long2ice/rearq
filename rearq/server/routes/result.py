@@ -6,47 +6,49 @@ from starlette.requests import Request
 from rearq import ReArq, constants
 from rearq.server import templates
 from rearq.server.depends import get_pager, get_rearq
-from rearq.server.models import Result
+from rearq.server.models import JobResult
+from rearq.server.responses import JobResultListOut
 
 router = APIRouter()
 
 
-@router.get("/data")
+@router.get("/data", response_model=JobResultListOut)
 async def get_results(
     task: Optional[str] = None,
     job_id: Optional[str] = None,
     start_time: Optional[str] = None,
     end_time: Optional[str] = None,
     worker: Optional[str] = None,
+    success: Optional[str] = None,
     pager=Depends(get_pager),
 ):
-    limit = pager[0]
-    offset = pager[1]
-    qs = Result.all()
+    qs = JobResult.all().select_related("job")
     if task:
-        qs = qs.filter(task=task)
+        qs = qs.filter(job__task=task)
     if job_id:
-        qs = qs.filter(job_id=job_id)
+        qs = qs.filter(job__job_id=job_id)
     if start_time:
         qs = qs.filter(start_time__gte=start_time)
     if end_time:
         qs = qs.filter(end_time__lte=end_time)
     if worker:
         qs = qs.filter(worker=worker)
-    results = await qs.limit(limit).offset(offset)
+    if success:
+        qs = qs.filter(success=success == "1")
+    results = await qs.limit(pager[0]).offset(pager[1])
     return {"rows": results, "total": await qs.count()}
 
 
 @router.delete("")
 async def delete_result(ids: str):
-    return await Result.filter(id__in=ids.split(",")).delete()
+    return await JobResult.filter(id__in=ids.split(",")).delete()
 
 
 @router.get("")
 async def result(
     request: Request, rearq: ReArq = Depends(get_rearq),
 ):
-    workers_info = await rearq.get_redis.hgetall(constants.WORKER_KEY)
+    workers_info = await rearq.redis.hgetall(constants.WORKER_KEY)
 
     return templates.TemplateResponse(
         "result.html",

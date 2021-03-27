@@ -34,7 +34,7 @@
         </div>
     </div>
     <div class="mt-3">
-        <div id="chart" style="height:600px"></div>
+        <div id="chart" style="height:500px"></div>
     </div>
 {% endblock %}
 {% block body_end %}
@@ -46,8 +46,9 @@
                 text: 'Task results chart',
             },
             tooltip: {},
+            color: ["#198754", "#dc3545"],
             legend: {
-                data: ['Times']
+                data: ['Success', 'Fail'],
             },
             xAxis: {
                 data: {{ x_axis|safe }},

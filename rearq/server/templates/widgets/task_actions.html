@@ -1,7 +1,8 @@
 <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#run-{{ task.name }}">
     Run
 </button>
-<a class="btn btn-dark btn-sm" href="/result?task={{ task.name }}">Result</a>
+<a class="btn btn-secondary btn-sm" href="/result?task={{ task.name }}">Job</a>
+<a class="btn btn-dark btn-sm" href="/job?task={{ task.name }}">Result</a>
 <div class="modal fade" id="run-{{ task.name }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">

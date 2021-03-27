@@ -38,10 +38,10 @@
                 </td>
                 <td>
                     <button class="btn btn-danger btn-sm" onclick="delete_worker('{{ worker.name }}')">Remove</button>
-                    <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#logs-{{ worker.name }}"
+                    <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#logs-{{ loop.index }}"
                             onclick="show_logs('{{ worker.name }}',$(this))">Log
                     </button>
-                    <div class="modal fade" id="logs-{{ worker.name }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal fade" id="logs-{{ loop.index }}" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-scrollable modal-xl">
                             <div class="modal-content">
                                 <div class="modal-header">
@@ -65,25 +65,26 @@
     </table>
 {% endblock %}
 {% block body_end %}
-    <script>function show_logs(name, btn) {
-        let modal = btn.parent().find('.modal-body');
-        $.ajax({
-            url: "/worker/log?name=" + name,
-            method: "GET",
-            success: res => {
-                modal.html(res.replace(/\n/g, '<br/>'));
-            }
-        });
-    }
+    <script>
+        function show_logs(name, btn) {
+            let modal = btn.parent().find('.modal-body');
+            $.ajax({
+                url: "/worker/log?name=" + name,
+                method: "GET",
+                success: res => {
+                    modal.html(res.replace(/\n/g, '<br/>'));
+                }
+            });
+        }
 
-    function delete_worker(name) {
-        $.ajax({
-            url: "/worker?name=" + name,
-            method: "DELETE",
-            success: res => {
-                location.reload();
-            }
-        });
-    }
+        function delete_worker(name) {
+            $.ajax({
+                url: "/worker?name=" + name,
+                method: "DELETE",
+                success: res => {
+                    location.reload();
+                }
+            });
+        }
     </script>
 {% endblock %}
