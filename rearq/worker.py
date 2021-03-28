@@ -187,7 +187,7 @@ class Worker:
         else:
             job_result.success = True
             job_result.finish_time = timezone.now()
-            job.status = JobStatus.complete
+            job.status = JobStatus.success
             if not self.is_check_task(job.task):
                 logger.info(
                     "%6.2fs ← %s ● %s" % ((timestamp_ms_now() - start_ms) / 1000, ref, result)
@@ -211,10 +211,6 @@ class Worker:
     async def _push_heartbeat(self, is_offline: bool = False):
         value = {
             "queue": self.queue,
-            "jobs_complete": self.jobs_complete,
-            "jobs_running": len(self.tasks),
-            "jobs_failed": self.jobs_failed,
-            "jobs_retried": self.jobs_retried,
             "is_timer": isinstance(self, TimerWorker),
         }
         if is_offline:
@@ -232,7 +228,7 @@ class Worker:
             await self._push_heartbeat()
             await asyncio.sleep(constants.WORKER_HEARTBEAT_SECONDS)
 
-    async def run(self):
+    async def _pre_run(self):
         try:
             await self._redis.xgroup_create(
                 self.queue, self.group_name, latest_id="$", mkstream=True
@@ -251,6 +247,9 @@ class Worker:
                 )
                 self.consumer_name = length
                 await self._push_heartbeat()
+
+    async def run(self):
+        await self._pre_run()
         try:
             await asyncio.gather(self._main(), self._heartbeat())
         except asyncio.CancelledError:
@@ -265,22 +264,17 @@ class Worker:
 
 
 class TimerWorker(Worker):
-    def __init__(
-        self,
-        rearq: "ReArq",
-        queue: Optional[str] = None,
-        group_name: Optional[str] = None,
-        consumer_name: Optional[str] = None,
-    ):
-        super().__init__(rearq, queue, group_name, consumer_name)
-        self.consumer_name = consumer_name or "timer"
+    def __init__(self, rearq: "ReArq"):
+        super().__init__(rearq)
+        self.consumer_name = "timer"
+        self.queue = DELAY_QUEUE
 
     async def _main(self) -> None:
         tasks = list(CronTask.get_cron_tasks().keys())
         tasks.remove(check_pending_msgs.__name__)
+        logger.info("Start timer success")
         logger.add(f"logs/worker-{self.consumer_name}.log", rotation="00:00")
         logger.info(f"Registered timer tasks: {', '.join(tasks)}")
-        logger.info(f"Start timer worker success with queue: {self.queue}")
 
         await self.log_redis_info()
         await self.rearq.startup()
@@ -289,8 +283,7 @@ class TimerWorker(Worker):
             await self._poll_iteration()
             await self.run_cron()
 
-    async def run(self):
-        exists = False
+    async def _pre_run(self):
         async with await self._lock_manager.lock(constants.WORKER_KEY_LOCK):
             workers_info = await self._redis.hgetall(constants.WORKER_KEY)
             for worker_name, value in workers_info.items():
@@ -303,12 +296,9 @@ class TimerWorker(Worker):
                     logger.error(
                         f"There is a timer worker `{worker_name}` already, you can only start one timer worker"
                     )
-                    exists = True
                     break
             else:
                 await self._push_heartbeat()
-        if not exists:
-            await super(TimerWorker, self).run()
 
     async def run_cron(self):
         """
@@ -330,7 +320,7 @@ class TimerWorker(Worker):
                     Job(
                         task=function,
                         job_retry=self.job_retry,
-                        queue=self.queue,
+                        queue=task.queue,
                         job_id=job_id,
                         enqueue_time=timezone.now(),
                         job_retry_after=self.job_retry_after,

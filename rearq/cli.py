@@ -43,22 +43,28 @@ async def cli(ctx: Context, rearq: str, verbose):
         raise BadArgumentUsage(ctx=ctx, message=f"Init rearq error, {e}.")
 
 
-@cli.command(help="Start rearq worker.")
+@cli.command(help="Start a worker.")
 @click.option("-q", "--queue", required=False, help="Queue to consume.")
-@click.option("-t", "--timer", default=False, is_flag=True, help="Start a timer worker.")
 @click.option(
     "--group-name", required=False, help="Group name.",
 )
 @click.option("--consumer-name", required=False, help="Consumer name.")
 @click.pass_context
 @coro
-async def worker(ctx: Context, queue: str, timer: bool, group_name: str, consumer_name: str):
+async def worker(ctx: Context, queue: str, group_name: str, consumer_name: str):
     rearq = ctx.obj["rearq"]
     await rearq.init()
-    if timer:
-        w = TimerWorker(rearq, queue=queue, group_name=group_name, consumer_name=consumer_name)
-    else:
-        w = Worker(rearq, queue=queue, group_name=group_name, consumer_name=consumer_name)
+    w = Worker(rearq, queue=queue, group_name=group_name, consumer_name=consumer_name)
+    await w.run()
+
+
+@cli.command(help="Start a timer.")
+@click.pass_context
+@coro
+async def timer(ctx: Context):
+    rearq = ctx.obj["rearq"]
+    await rearq.init()
+    w = TimerWorker(rearq)
     await w.run()
 
 

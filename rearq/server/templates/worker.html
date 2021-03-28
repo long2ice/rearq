@@ -5,10 +5,11 @@
         <tr>
             <th scope="col">Name</th>
             <th scope="col">Queue</th>
-            <th scope="col">Complete</th>
+            <th scope="col">Deferred</th>
+            <th scope="col">Queued</th>
+            <th scope="col">InProgress</th>
+            <th scope="col">Success</th>
             <th scope="col">Failed</th>
-            <th scope="col">Retried</th>
-            <th scope="col">Running</th>
             <th scope="col">LastAlive</th>
             <th scope="col">Information</th>
             <th scope="col">Actions</th>
@@ -19,10 +20,11 @@
             <tr>
                 <td>{{ worker.name }}</td>
                 <td>{{ worker.queue }}</td>
-                <td>{{ worker.jobs_complete }}</td>
-                <td>{{ worker.jobs_failed }}</td>
-                <td>{{ worker.jobs_retried }}</td>
-                <td>{{ worker.jobs_running }}</td>
+                <td>{{ worker.job_stat.deferred or 0 }}</td>
+                <td>{{ worker.job_stat.queued or 0 }}</td>
+                <td>{{ worker.job_stat.in_progress or 0 }}</td>
+                <td>{{ worker.job_stat.success or 0 }}</td>
+                <td>{{ worker.job_stat.failed or 0 }}</td>
                 <td class="time-format">{{ worker.time }}</td>
                 <td>
                     {% if worker.is_offline %}
