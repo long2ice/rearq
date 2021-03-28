@@ -1,12 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from starlette.requests import Request
-from starlette.status import HTTP_404_NOT_FOUND
 
-from rearq import CronTask, ReArq, constants
+from rearq import CronTask, ReArq
 from rearq.server import templates
 from rearq.server.depends import get_rearq
 from rearq.server.models import JobResult
-from rearq.server.schemas import AddJobIn
 from rearq.utils import ms_to_datetime
 
 router = APIRouter()

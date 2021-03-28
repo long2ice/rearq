@@ -9,11 +9,4 @@ from examples.tasks import add
 async def test_add_job():
     job_id = str(time.time())
     job = await add.delay(job_id=job_id, args=(1, 2))
-    info = await job.info()
-    assert (
-        info.task == "add"
-        and info.args == (1, 2)
-        and info.job_retry == 3
-        and info.job_id == job_id
-        and info.queue == "rearq:queue:default"
-    )
+    assert job.task == "add" and job.args == (1, 2) and job.job_retry == 3 and job.job_id == job_id

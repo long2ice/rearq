@@ -360,7 +360,7 @@ class TimerWorker(Worker):
         p = redis.pipeline()
         for job_id in jobs_id:  # type:str
             separate = job_id.rindex(":")
-            queue, job_id = job_id[:separate], job_id[separate + 1 :]
+            queue, job_id = job_id[:separate], job_id[separate + 1 :]  # noqa:
             p.xadd(queue, {"job_id": job_id})
         p.zrem(DELAY_QUEUE, *jobs_id)
         await p.execute()

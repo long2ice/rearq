@@ -11,6 +11,17 @@
     <script src="https://unpkg.com/sweetalert@2.1.2/dist/sweetalert.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.18.2/dist/bootstrap-table.min.css">
     <script src="https://cdn.jsdelivr.net/npm/luxon@1.26.0/build/global/luxon.min.js"></script>
+    <style>
+        html {
+            height: 100%;
+        }
+
+        body {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
     {% block head %}
     {% endblock %}
 </head>
@@ -18,45 +29,45 @@
 <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
     <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="/">ReArq</a>
 </header>
-<div class="container-fluid">
-    <div class="row">
-        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-            <div class="position-sticky pt-3">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link {% if page_title == 'dashboard' %}active{% endif %}" href="/">
-                            <span data-feather="home"></span>
-                            Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if page_title == 'worker' %}active{% endif %}" href="/worker">
-                            <span data-feather="briefcase"></span>
-                            Worker
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if page_title == 'task' %}active{% endif %}" href="/task">
-                            <span data-feather="inbox"></span>
-                            Task
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if page_title == 'job' %}active{% endif %}" href="/job">
-                            <span data-feather="clock"></span>
-                            Job
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if page_title == 'result' %}active{% endif %}" href="/result">
-                            <span data-feather="file-text"></span>
-                            Result
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+<div class="container-fluid flex-fill">
+    <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+        <div class="position-sticky pt-3">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link {% if page_title == 'dashboard' %}active{% endif %}" href="/">
+                        <span data-feather="home"></span>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if page_title == 'worker' %}active{% endif %}" href="/worker">
+                        <span data-feather="briefcase"></span>
+                        Worker
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if page_title == 'task' %}active{% endif %}" href="/task">
+                        <span data-feather="inbox"></span>
+                        Task
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if page_title == 'job' %}active{% endif %}" href="/job">
+                        <span data-feather="clock"></span>
+                        Job
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if page_title == 'result' %}active{% endif %}" href="/result">
+                        <span data-feather="file-text"></span>
+                        Result
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="content d-flex flex-column h-100">
+        <main class="flex-fill col-md-9 ms-sm-auto col-lg-10 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">{{ page_title|title }}</h1>
             </div>
@@ -64,18 +75,18 @@
 
             {% endblock %}
         </main>
-        <footer class="footer py-3 ps-5 bg-light bottom-0 position-absolute">
-            <div class="container">
-                <span class="text-muted">Powered by <span class="fw-bold">ReArq</span> v{{ REAEQ_VERSION }}</span>
-                <span class="text-muted position-absolute py-3 pe-3 bottom-0 end-0">
+    </div>
+</div>
+<footer class="footer ps-5 bg-light">
+    <div class="container d-flex">
+        <span class="text-muted py-3 flex-fill">Powered by <span class="fw-bold">ReArq</span> v{{ REAEQ_VERSION }}</span>
+        <span class="text-muted py-3">
                     <span class="pe-3 fw-bold">Copyright © 2020-{{ NOW_YEAR }}</span>
                     <a href="https://github.com/long2ice" class="text-decoration-none pe-3">long2ice</a>
                     <a class="text-decoration-none pe-3" href="https://github.com/long2ice/rearq">Github</a>
                 </span>
-            </div>
-        </footer>
     </div>
-</div>
+</footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0"
         crossorigin="anonymous"></script>
