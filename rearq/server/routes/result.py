@@ -30,7 +30,7 @@ async def get_results(
     if start_time:
         qs = qs.filter(start_time__gte=start_time)
     if end_time:
-        qs = qs.filter(end_time__lte=end_time)
+        qs = qs.filter(start_time__lte=end_time)
     if worker:
         qs = qs.filter(worker=worker)
     if success:

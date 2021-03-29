@@ -23,6 +23,14 @@
                        placeholder="JobID">
             </div>
             <div class="col">
+                <select id="status" name="status" class="form-select form-select-sm" aria-label="Job status">
+                    <option selected value="">Select status</option>
+                    {% for status in job_status %}
+                        <option value="{{ status }}">{{ status|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col">
                 <input type="datetime-local" name="start_time" id="start_time"
                        class="form-control form-control-sm"
                        placeholder="Task start time">
@@ -34,7 +42,6 @@
             </div>
             <div class="col">
                 <button class="btn btn-primary btn-sm" type="button" id="search-btn">Search</button>
-                <button class="btn btn-secondary btn-sm" type="reset">Reset</button>
                 <button class="btn btn-danger btn-sm" type="button" id="remove-btn">Remove</button>
             </div>
         </div>
@@ -56,7 +63,9 @@
             <th data-field="job_retries">JobRetries</th>
             <th data-field="job_retry_after">JobRetryAfter</th>
             <th data-field="enqueue_time" data-formatter="timeFormatter">EnqueueTime</th>
+            <th data-field="expire_time" data-formatter="timeFormatter">ExpireTime</th>
             <th data-field="status" data-formatter="statusFormatter">Status</th>
+            <th data-formatter="actionsFormatter">Actions</th>
         </tr>
         </thead>
     </table>
@@ -85,10 +94,141 @@
                 return `<span class="badge bg-info">${value}</span>`;
             } else if (value === "in_progress") {
                 return `<span class="badge bg-primary">${value}</span>`;
-            } else if (value === "complete") {
+            } else if (value === "success") {
                 return `<span class="badge bg-success">${value}</span>`;
-
+            } else if (value === "failed") {
+                return `<span class="badge bg-danger">${value}</span>`;
+            } else if (value === "expired") {
+                return `<span class="badge bg-warning">${value}</span>`;
             }
+        }
+
+        function actionsFormatter(value, row) {
+            let status = row.status;
+            let disabled = 'disabled';
+            if (status === 'deferred' || status === 'queued') {
+                disabled = '';
+            }
+            let expire_time = row.expire_time || "";
+            if (expire_time !== "") {
+                expire_time = DateTime.fromISO(expire_time).toISO({includeOffset: false});
+            }
+            return `<button ${disabled} class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#edit-${row.job_id}">Edit
+                    </button>
+                    <div class="modal fade" id="edit-${row.job_id}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Edit Job</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                            aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                <form id="form-${row.job_id}">
+                                    <div class="row">
+                                        <div class="col">
+                                            <div class="mb-3">
+                                                <label for="args-${row.job_id}"
+                                                       class="col-form-label">Args:</label>
+                                                <input type="text" value="${row.args || ""}" class="form-control" id="args-${row.job_id}">
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <div class="mb-3">
+                                                <label for="kwargs-${row.job_id}"
+                                                       class="col-form-label">Kwargs:</label>
+                                                <input type="text" value="${row.kwargs || ""}" class="form-control" id="kwargs-${row.job_id}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col">
+                                            <div class="mb-3">
+                                                <label for="job-retry-${row.job_id}"
+                                                       class="col-form-label">jobRetry:</label>
+                                                <input type="number" value="${row.job_retry}" class="form-control" id="job-retry-${row.job_id}">
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <div class="mb-3">
+                                                <label for="job-retry-after-${row.job_id}"
+                                                       class="col-form-label">JobRetryAfter:</label>
+                                                <input type="number" value="${row.job_retry_after}" class="form-control"
+                                                       id="job-retry-after-${row.job_id}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col">
+                                            <div class="mb-3">
+                                                <label for="expire-time-${row.job_id}" class="col-form-label">ExpireTime:</label>
+                                                <input type="datetime-local" value="${expire_time}" class="form-control" id="expire-time-${row.job_id}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close
+                                    </button>
+                                    <button type="button" onclick="edit_job('${row.job_id}')" class="btn btn-primary">
+                                        Edit
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+        }
+
+        function edit_job(job_id) {
+            let data = {
+                job_id: job_id,
+            }
+            let args = $('#args-' + job_id).val()
+            if (args !== "") {
+                args = JSON.parse(args)
+                data.args = args;
+            }
+            let kwargs = $('#kwargs-' + job_id).val()
+            if (kwargs !== "") {
+                kwargs = JSON.parse(kwargs);
+                data.kwargs = kwargs;
+            }
+            let expire_time = $('#expire-time-' + job_id).val()
+            if (expire_time !== "") {
+                data.expire_time = expire_time;
+            }
+            let job_retry = $('#job-retry-' + job_id).val()
+            if (job_retry !== "") {
+                data.job_retry = job_retry;
+            }
+            let job_retry_after = $('#job-retry-after-' + job_id).val()
+            if (job_retry_after !== "") {
+                data.job_retry_after = job_retry_after;
+            }
+            $.ajax({
+                url: '/job',
+                method: 'PUT',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                dataType: 'json',
+                success: res => {
+                    swal({
+                        title: 'Edit job success',
+                        icon: "success",
+                    });
+                    table.bootstrapTable('refresh');
+                },
+                error: res => {
+                    swal({
+                        title: res.responseJSON.msg,
+                        icon: "error",
+                    });
+                },
+                complete: () => {
+                    $('#edit-' + job_id).modal('toggle');
+                }
+            })
         }
 
         function jobIdFormatter(value, row) {

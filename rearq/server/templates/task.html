@@ -111,6 +111,12 @@
                         }
                     });
                 },
+                error: res => {
+                    swal({
+                        title: res.responseJSON.msg,
+                        icon: "error",
+                    });
+                },
                 complete: () => {
                     $('#run-' + task_name).modal('toggle');
                 }

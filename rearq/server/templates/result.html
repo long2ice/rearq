@@ -18,7 +18,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-sm-1">
+            <div class="col">
                 <input type="text" id="job_id" name="job_id" class="form-control form-control-sm"
                        placeholder="JobID">
             </div>
@@ -41,7 +41,6 @@
             </div>
             <div class="col">
                 <button class="btn btn-primary btn-sm" type="button" id="search-btn">Search</button>
-                <button class="btn btn-secondary btn-sm" type="reset">Reset</button>
                 <button class="btn btn-danger btn-sm" type="button" id="remove-btn">Remove</button>
             </div>
         </div>
@@ -59,10 +58,10 @@
             <th data-field="job.task">Task</th>
             <th data-field="job.args">Args</th>
             <th data-field="job.kwargs">Kwargs</th>
-            <th data-field="job.job_retry">JobRetry</th>
-            <th data-field="job.job_retry_after">JobRetryAfter</th>
+            <th data-field="job.job_retry">Retry</th>
+            <th data-field="job.job_retry_after">RetryAfter</th>
             <th data-field="job.enqueue_time" data-formatter="timeFormatter">EnqueueTime</th>
-            <th data-field="job.job_id">JobID</th>
+            <th data-field="job.job_id" data-formatter="jobIdFormatter">JobID</th>
             <th data-field="success" data-formatter="booleanFormatter">Success</th>
             <th data-field="result">Result</th>
             <th data-field="start_time" data-formatter="timeFormatter">StartTime</th>
@@ -86,6 +85,10 @@
         }
         if (job_id) {
             $('#job_id').val(job_id);
+        }
+
+        function jobIdFormatter(value, row) {
+            return `<a class="text-decoration-none" href="/job?job_id=${value}">${value}</a>`;
         }
 
         function booleanFormatter(value, row) {

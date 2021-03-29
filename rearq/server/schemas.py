@@ -18,7 +18,6 @@ class UpdateJobIn(BaseModel):
     job_id: str
     args: Optional[List[Any]]
     kwargs: Optional[dict]
-    countdown: Optional[Union[float, datetime.timedelta]]
-    eta: Optional[datetime.datetime]
+    expire_time: Optional[datetime.datetime]
     job_retry: Optional[int]
-    job_retry: Optional[int]
+    job_retry_after: Optional[int]

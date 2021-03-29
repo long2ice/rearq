@@ -25,6 +25,7 @@ async def job_page(request: Request, rearq=Depends(get_rearq)):
             "page_title": "job",
             "tasks": rearq.task_map.keys(),
             "workers": workers_info.keys(),
+            "job_status": JobStatus,
         },
     )
 
@@ -44,9 +45,9 @@ async def get_results(
     if job_id:
         qs = qs.filter(job_id=job_id)
     if start_time:
-        qs = qs.filter(start_time__gte=start_time)
+        qs = qs.filter(enqueue_time__gte=start_time)
     if end_time:
-        qs = qs.filter(end_time__lte=end_time)
+        qs = qs.filter(enqueue_time__lte=end_time)
     if status:
         qs = qs.filter(status=status)
     results = await qs.limit(pager[0]).offset(pager[1])

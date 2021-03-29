@@ -1,4 +1,4 @@
-# Rearq
+# ReArq
 
 [![image](https://img.shields.io/pypi/v/rearq.svg?style=flat)](https://pypi.python.org/pypi/rearq)
 [![image](https://img.shields.io/github/license/long2ice/rearq)](https://github.com/long2ice/rearq)
@@ -15,11 +15,10 @@ to make improvement and include web interface.
 ![dashboard](./images/dashboard.png)
 ![worker](./images/worker.png)
 ![task](./images/task.png)
+![job](./images/job.png)
 ![result](./images/result.png)
 
 ## Install
-
-Just install from pypi:
 
 Use MySQL backend:
 
@@ -80,7 +79,7 @@ async def timer(self):
 
 ### Run rearq timer
 
-If you have timing task, you should run another command also:
+If you have timing task or delay task, you should run another command also:
 
 ```shell
 > rearq main:rearq timer
