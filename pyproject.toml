@@ -20,7 +20,7 @@ pydantic = "*"
 click = "*"
 aioredis = "*"
 crontab = "*"
-uvicorn = "*"
+uvicorn = { version = "*", extras = ["standard"] }
 fastapi = "*"
 loguru = "*"
 jinja2 = "*"

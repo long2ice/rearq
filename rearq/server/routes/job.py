@@ -15,7 +15,7 @@ from rearq.server.schemas import AddJobIn, UpdateJobIn
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", include_in_schema=False)
 async def job_page(request: Request, rearq=Depends(get_rearq)):
     workers_info = await rearq.redis.hgetall(constants.WORKER_KEY)
     return templates.TemplateResponse(

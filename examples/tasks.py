@@ -1,6 +1,8 @@
 import asyncio
 import os
 
+from loguru import logger
+
 from rearq import ReArq, Task
 
 rearq = ReArq(db_url=f"mysql://root:{os.getenv('MYSQL_PASS') or '123456'}@127.0.0.1:3306/test")
@@ -8,12 +10,12 @@ rearq = ReArq(db_url=f"mysql://root:{os.getenv('MYSQL_PASS') or '123456'}@127.0.
 
 @rearq.on_shutdown
 async def on_shutdown():
-    print("shutdown")
+    logger.debug("rearq is shutdown")
 
 
 @rearq.on_startup
 async def on_startup():
-    print("startup")
+    logger.debug("rearq is startup")
 
 
 @rearq.task()

@@ -10,7 +10,7 @@ from rearq.utils import ms_to_datetime
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", include_in_schema=False)
 async def get_tasks(request: Request, rearq: ReArq = Depends(get_rearq)):
     task_map = rearq.task_map
     tasks = []

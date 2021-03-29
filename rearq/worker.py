@@ -134,6 +134,11 @@ class Worker:
         await self._redis.xack(queue, self.group_name, msg_id)
 
     async def run_job(self, queue: str, msg_id: str, job: Job):
+        if job.expire_time and job.expire_time > timezone.now():
+            logger.warning(f"job {job.job_id} is expired, ignore")
+            job.status = JobStatus.expired
+            await job.save(update_fields=["status"])
+            return
         redis = self._redis
         job_id = job.job_id
         job_result = JobResult(job=job, worker=self.worker_name, start_time=timezone.now())
@@ -141,7 +146,8 @@ class Worker:
         if not task:
             logger.warning(f"job {job_id}, task {job.task} not found")
             job_result.result = "task not found"
-            return await job_result.save()
+            await job_result.save()
+            return job_result
         ref = f"{job_id}:{job.task}"
 
         if job.job_retries > job.job_retry:
@@ -149,30 +155,25 @@ class Worker:
             logger.warning("%6.2fs ! %s max retries %d exceeded" % (t, ref, job.job_retries))
             job_result.result = f"max retries {job.job_retries} exceeded"
             await self._xack(queue, msg_id)
-            return await job_result.save()
+            await job_result.save()
+            return job_result
         start_ms = timestamp_ms_now()
         result = no_result
-        if not self.is_check_task(job.task):
-            logger.info(
-                "%6.2fs → %s(%s)%s"
-                % (
-                    (start_ms - to_ms_timestamp(job.enqueue_time)) / 1000,
-                    ref,
-                    args_to_string(job.args, job.kwargs),
-                    f" try={job.job_retries}" if job.job_retries > 1 else "",
-                )
+        logger.info(
+            "%6.2fs → %s(%s)%s"
+            % (
+                (start_ms - to_ms_timestamp(job.enqueue_time)) / 1000,
+                ref,
+                args_to_string(job.args, job.kwargs),
+                f" try={job.job_retries}" if job.job_retries > 1 else "",
             )
+        )
         try:
             async with async_timeout.timeout(self.job_timeout):
-                if self.is_check_task(job.task):
-                    await task.function(
-                        task, self.queue, self.group_name, self.consumer_name, self.job_timeout
-                    )
+                if task.bind:
+                    result = await task.function(task, *(job.args or []), **(job.kwargs or {}))
                 else:
-                    if task.bind:
-                        result = await task.function(task, *(job.args or []), **(job.kwargs or {}))
-                    else:
-                        result = await task.function(*(job.args or []), **(job.kwargs or {}))
+                    result = await task.function(*(job.args or []), **(job.kwargs or {}))
 
         except Exception as e:
             job_result.finish_time = timezone.now()
@@ -188,21 +189,15 @@ class Worker:
             job_result.success = True
             job_result.finish_time = timezone.now()
             job.status = JobStatus.success
-            if not self.is_check_task(job.task):
-                logger.info(
-                    "%6.2fs ← %s ● %s" % ((timestamp_ms_now() - start_ms) / 1000, ref, result)
-                )
+            logger.info("%6.2fs ← %s ● %s" % ((timestamp_ms_now() - start_ms) / 1000, ref, result))
             self.jobs_complete += 1
         finally:
             await self._xack(queue, msg_id)
         if result is not no_result:
             job_result.result = result
         await job.save(update_fields=["status"])
-        return await job_result.save()
-
-    @classmethod
-    def is_check_task(cls, function: str):
-        return function == check_pending_msgs.__name__
+        await job_result.save()
+        return job_result
 
     @property
     def worker_name(self):
@@ -314,21 +309,24 @@ class TimerWorker(Worker):
             if timestamp_ms_now() >= task.next_run:
                 execute = True
                 job_id = uuid4().hex
-                if not self.is_check_task(task.function.__name__):
+                if task.function == check_pending_msgs:
+                    logger.info("check pending")
+                    # TODO
+                else:
                     logger.info(f"{task.function.__name__}()")
-                jobs.append(
-                    Job(
-                        task=function,
-                        job_retry=self.job_retry,
-                        queue=task.queue,
-                        job_id=job_id,
-                        enqueue_time=timezone.now(),
-                        job_retry_after=self.job_retry_after,
-                        status=JobStatus.queued,
+                    jobs.append(
+                        Job(
+                            task=function,
+                            job_retry=self.job_retry,
+                            queue=task.queue,
+                            job_id=job_id,
+                            enqueue_time=timezone.now(),
+                            job_retry_after=self.job_retry_after,
+                            status=JobStatus.queued,
+                        )
                     )
-                )
-                p.xadd(task.queue, {"job_id": job_id})
-                self.jobs_complete += 1
+                    p.xadd(task.queue, {"job_id": job_id})
+                    self.jobs_complete += 1
                 task.set_next()
         if jobs:
             await Job.bulk_create(jobs)

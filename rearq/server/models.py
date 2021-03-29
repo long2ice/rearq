@@ -12,6 +12,7 @@ class Job(Model):
     job_retry_after = fields.IntField()
     job_id = fields.CharField(max_length=200, unique=True)
     enqueue_time = fields.DatetimeField()
+    expire_time = fields.DatetimeField(null=True)
     status = fields.CharEnumField(job.JobStatus)
 
 

@@ -44,7 +44,7 @@ async def delete_result(ids: str):
     return await JobResult.filter(id__in=ids.split(",")).delete()
 
 
-@router.get("")
+@router.get("", include_in_schema=False)
 async def result(
     request: Request, rearq: ReArq = Depends(get_rearq),
 ):

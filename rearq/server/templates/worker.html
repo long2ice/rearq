@@ -10,6 +10,7 @@
             <th scope="col">InProgress</th>
             <th scope="col">Success</th>
             <th scope="col">Failed</th>
+            <th scope="col">Expired</th>
             <th scope="col">LastAlive</th>
             <th scope="col">Information</th>
             <th scope="col">Actions</th>
@@ -25,6 +26,7 @@
                 <td>{{ worker.job_stat.in_progress or 0 }}</td>
                 <td>{{ worker.job_stat.success or 0 }}</td>
                 <td>{{ worker.job_stat.failed or 0 }}</td>
+                <td>{{ worker.job_stat.expired or 0 }}</td>
                 <td class="time-format">{{ worker.time }}</td>
                 <td>
                     {% if worker.is_offline %}

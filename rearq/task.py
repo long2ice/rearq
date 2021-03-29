@@ -9,7 +9,7 @@ from tortoise import timezone
 from rearq.constants import DELAY_QUEUE
 from rearq.job import JobStatus
 from rearq.server.models import Job
-from rearq.utils import timestamp_ms_now, to_ms_timestamp
+from rearq.utils import ms_to_datetime, timestamp_ms_now, to_ms_timestamp
 
 
 class Task:
@@ -21,6 +21,7 @@ class Task:
         rearq,
         job_retry: int,
         job_retry_after: int,
+        expire: Optional[Union[float, datetime.datetime]] = None,
     ):
 
         self.job_retry = job_retry
@@ -29,6 +30,7 @@ class Task:
         self.rearq = rearq
         self.function = function
         self.bind = bind
+        self.expire = expire
 
     async def delay(
         self,
@@ -37,6 +39,7 @@ class Task:
         job_id: str = None,
         countdown: Union[float, datetime.timedelta] = 0,
         eta: Optional[datetime.datetime] = None,
+        expire: Optional[Union[float, datetime.datetime]] = None,
         job_retry: int = 0,
         job_retry_after: int = 60,
     ) -> Job:
@@ -48,6 +51,10 @@ class Task:
             defer_ts = to_ms_timestamp(eta)
         else:
             defer_ts = timestamp_ms_now()
+        expire_time = None
+        expires = expire or self.expire
+        if expires:
+            expire_time = ms_to_datetime(to_ms_timestamp(expires))
 
         job = await Job.get_or_none(job_id=job_id)
         if job:
@@ -61,6 +68,7 @@ class Task:
             job_retry=job_retry or self.job_retry,
             queue=self.queue,
             job_id=job_id,
+            expire_time=expire_time,
             enqueue_time=timezone.now(),
             job_retry_after=job_retry_after,
         )
@@ -110,8 +118,9 @@ class CronTask(Task):
         job_retry: int,
         job_retry_after: int,
         cron: str,
+        expire: Optional[Union[float, datetime.datetime]] = None,
     ):
-        super().__init__(bind, function, queue, rearq, job_retry, job_retry_after)
+        super().__init__(bind, function, queue, rearq, job_retry, job_retry_after, expire)
         self.crontab = CronTab(cron)
         self.cron = cron
         self.set_next()

@@ -7,7 +7,7 @@
 
 ## Introduction
 
-Rearq is a distributed task queue with asyncio and redis, which rewrite from [arq](https://github.com/samuelcolvin/arq)
+ReArq is a distributed task queue with asyncio and redis, which rewrite from [arq](https://github.com/samuelcolvin/arq)
 to make improvement and include web interface.
 
 ## Screenshots
@@ -73,21 +73,23 @@ async def timer(self):
 ```
 
 ```log
-2020-06-04 15:37:02 - rearq.worker:92 - INFO - Start worker success with queue: myqueue
-2020-06-04 15:37:02 - rearq.worker:84 - INFO - redis_version=6.0.1 mem_usage=1.47M clients_connected=25 db_keys=5
+2021-03-29 09:54:50.464 | INFO     | rearq.worker:_main:95 - Start worker success with queue: rearq:queue:default
+2021-03-29 09:54:50.465 | INFO     | rearq.worker:_main:96 - Registered tasks: add, sleep, timer_add
+2021-03-29 09:54:50.465 | INFO     | rearq.worker:log_redis_info:86 - redis_version=6.2.1 mem_usage=1.43M clients_connected=5 db_keys=6
 ```
 
-### Run rearq timing worker
+### Run rearq timer
 
 If you have timing task, you should run another command also:
 
 ```shell
-> rearq main:rearq worker -t
+> rearq main:rearq timer
 ```
 
 ```log
-2020-06-04 15:37:44 - rearq.worker:346 - INFO - Start timer worker success with queue: myqueue
-2020-06-04 15:37:44 - rearq.worker:84 - INFO - redis_version=6.0.1 mem_usage=1.47M clients_connected=25 db_keys=5
+2021-03-29 09:54:43.878 | INFO     | rearq.worker:_main:275 - Start timer success
+2021-03-29 09:54:43.887 | INFO     | rearq.worker:_main:277 - Registered timer tasks: timer_add
+2021-03-29 09:54:43.894 | INFO     | rearq.worker:log_redis_info:86 - redis_version=6.2.1 mem_usage=1.25M clients_connected=2 db_keys=6
 ```
 
 ### Integration in FastAPI
@@ -117,7 +119,7 @@ async def test():
 
 ## Start server
 
-You can start the web server.
+You can start the web interface.
 
 ```shell
 > rearq main:rearq server

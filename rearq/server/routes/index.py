@@ -6,7 +6,7 @@ from tortoise.functions import Count, Function
 from rearq import ReArq, constants
 from rearq.server import templates
 from rearq.server.depends import get_rearq
-from rearq.server.models import JobResult
+from rearq.server.models import Job, JobResult
 
 router = APIRouter()
 
@@ -15,7 +15,7 @@ class ToDate(Function):
     database_func = Date
 
 
-@router.get("/")
+@router.get("/", include_in_schema=False)
 async def index(request: Request, rearq: ReArq = Depends(get_rearq)):
     task_map = rearq.task_map
     task_num = len(task_map)
@@ -23,28 +23,52 @@ async def index(request: Request, rearq: ReArq = Depends(get_rearq)):
     worker_num = len(workers_info)
     run_times = await JobResult.all().count()
     result = (
-        await JobResult.all()
-        .annotate(count=Count("id"), date=ToDate("start_time"))
-        .group_by("date", "success")
+        await Job.all()
+        .annotate(count=Count("id"), date=ToDate("enqueue_time"))
+        .group_by("date", "status")
         .order_by("date")
-        .values("date", "success", "count")
+        .values("date", "status", "count")
     )
     x_axis = []
     series = [
         {
-            "name": "Success",
+            "name": "Deferred",
             "type": "line",
             "data": [],
-            "lineStyle": {"color": "#198754"},
-            "areaStyle": {"color": "#198754"},
             "stack": "total",
             "label": {"show": "true"},
         },
         {
-            "name": "Fail",
+            "name": "Queued",
             "type": "line",
-            "lineStyle": {"color": "#dc3545"},
-            "areaStyle": {"color": "#dc3545"},
+            "stack": "total",
+            "data": [],
+            "label": {"show": "true"},
+        },
+        {
+            "name": "InProgress",
+            "type": "line",
+            "stack": "total",
+            "data": [],
+            "label": {"show": "true"},
+        },
+        {
+            "name": "Success",
+            "type": "line",
+            "stack": "total",
+            "data": [],
+            "label": {"show": "true"},
+        },
+        {
+            "name": "Failed",
+            "type": "line",
+            "stack": "total",
+            "data": [],
+            "label": {"show": "true"},
+        },
+        {
+            "name": "Expired",
+            "type": "line",
             "stack": "total",
             "data": [],
             "label": {"show": "true"},
@@ -55,11 +79,19 @@ async def index(request: Request, rearq: ReArq = Depends(get_rearq)):
         if date not in x_axis:
             x_axis.append(date)
         count = item.get("count")
-        success = item.get("success")
-        if success:
+        status = item.get("status")
+        if status == "deferred":
             series[0]["data"].append(count)
-        else:
+        elif status == "queued":
             series[1]["data"].append(count)
+        elif status == "in_progress":
+            series[2]["data"].append(count)
+        elif status == "success":
+            series[3]["data"].append(count)
+        elif status == "failed":
+            series[4]["data"].append(count)
+        elif status == "expired":
+            series[5]["data"].append(count)
     return templates.TemplateResponse(
         "dashboard.html",
         {

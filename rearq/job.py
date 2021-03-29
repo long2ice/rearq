@@ -11,3 +11,4 @@ class JobStatus(str, Enum):
     in_progress = "in_progress"
     success = "success"
     failed = "failed"
+    expired = "expired"

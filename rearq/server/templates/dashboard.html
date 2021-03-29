@@ -46,9 +46,8 @@
                 text: 'Task results chart',
             },
             tooltip: {},
-            color: ["#198754", "#dc3545"],
             legend: {
-                data: ['Success', 'Fail'],
+                data: ['Deferred', 'Queued', "InProgress", "Success", "Failed", "Expired"],
             },
             xAxis: {
                 data: {{ x_axis|safe }},

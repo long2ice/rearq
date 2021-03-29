@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import functools
 from functools import wraps
 from ssl import SSLContext
@@ -39,11 +40,13 @@ class ReArq:
         job_retry_after: int = 60,
         max_jobs: int = 10,
         job_timeout: int = 300,
+        expire: Optional[Union[float, datetime.datetime]] = None,
     ):
         self.job_timeout = job_timeout
         self.max_jobs = max_jobs
         self.job_retry = job_retry
         self.job_retry_after = job_retry_after
+        self.expire = expire
         self.sentinel = sentinel
         self.ssl = ssl
         self.sentinel_master = sentinel_master
@@ -107,6 +110,7 @@ class ReArq:
         name: Optional[str] = None,
         job_retry: Optional[int] = None,
         job_retry_after: Optional[int] = None,
+        expire: Optional[Union[float, datetime.datetime]] = None,
     ):
 
         if not callable(func):
@@ -125,6 +129,7 @@ class ReArq:
             rearq=self,
             job_retry=job_retry or self.job_retry,
             job_retry_after=job_retry_after or self.job_retry_after,
+            expire=expire or self.expire,
             bind=bind,
         )
         if cron:
@@ -143,9 +148,12 @@ class ReArq:
         name: Optional[str] = None,
         job_retry: Optional[int] = None,
         job_retry_after: Optional[int] = None,
+        expire: Optional[Union[float, datetime.datetime]] = None,
     ):
         def wrapper(func: Callable):
-            return self.create_task(bind, func, queue, cron, name, job_retry, job_retry_after)
+            return self.create_task(
+                bind, func, queue, cron, name, job_retry, job_retry_after, expire
+            )
 
         return wrapper
 
