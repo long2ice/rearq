@@ -10,6 +10,8 @@
 ReArq is a distributed task queue with asyncio and redis, which rewrite from [arq](https://github.com/samuelcolvin/arq)
 to make improvement and include web interface.
 
+You can try [Demo Online](https://demo-rearq.long2ice.cn) here.
+
 ## Screenshots
 
 ![dashboard](./images/dashboard.png)

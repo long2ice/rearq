@@ -5,7 +5,7 @@ from loguru import logger
 
 from rearq import ReArq, Task
 
-rearq = ReArq(db_url=f"mysql://root:{os.getenv('MYSQL_PASS') or '123456'}@127.0.0.1:3306/test")
+rearq = ReArq(db_url=f"mysql://root:{os.getenv('MYSQL_PASS') or '123456'}@127.0.0.1:3306/rearq")
 
 
 @rearq.on_shutdown
@@ -28,6 +28,6 @@ async def sleep(self: Task, time: float):
     return await asyncio.sleep(time)
 
 
-@rearq.task(cron="*/5 * * * * * *")
+@rearq.task(cron="* * * * *")
 async def timer_add(self: Task):
     return "timer"

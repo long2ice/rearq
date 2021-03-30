@@ -1,0 +1,22 @@
+version: "3"
+services:
+  server:
+    build: .
+    image: rearq
+    restart: always
+    command: rearq examples.tasks:rearq server
+    network_mode: host
+  timer:
+    network_mode: host
+    image: rearq
+    restart: always
+    depends_on:
+      - server
+    command: rearq examples.tasks:rearq timer
+  worker:
+    network_mode: host
+    image: rearq
+    restart: always
+    depends_on:
+      - server
+    command: rearq examples.tasks:rearq worker
