@@ -14,7 +14,7 @@ from loguru import logger
 from tortoise import timezone
 from tortoise.expressions import F
 
-from rearq import CronTask, constants
+from rearq import CronTask, UsageError, constants
 from rearq.constants import DEFAULT_QUEUE, DELAY_QUEUE, QUEUE_KEY_PREFIX
 from rearq.job import JobStatus
 from rearq.server.models import Job, JobResult
@@ -25,8 +25,6 @@ if TYPE_CHECKING:
     from rearq import ReArq
 Serializer = Callable[[Dict[str, Any]], bytes]
 Deserializer = Callable[[bytes], Dict[str, Any]]
-
-no_result = object()
 
 
 class Worker:
@@ -108,7 +106,7 @@ class Worker:
                 async with self.sem:
                     jobs_id = list(map(lambda m: m[2].get("job_id"), msgs))
                     qs = Job.filter(job_id__in=jobs_id)
-                    await qs.update(status=JobStatus.in_progress, job_retries=F("job_retries") + 1)
+                    await qs.update(status=JobStatus.in_progress)
                     jobs = await qs
                     jobs_dict = {job.job_id: job for job in jobs}
                     for msg in msgs:
@@ -150,15 +148,7 @@ class Worker:
             return job_result
         ref = f"{job_id}:{job.task}"
 
-        if job.job_retries > job.job_retry:
-            t = (timestamp_ms_now() - to_ms_timestamp(job.enqueue_time)) / 1000
-            logger.warning("%6.2fs ! %s max retries %d exceeded" % (t, ref, job.job_retries))
-            job_result.result = f"max retries {job.job_retries} exceeded"
-            await self._xack(queue, msg_id)
-            await job_result.save()
-            return job_result
         start_ms = timestamp_ms_now()
-        result = no_result
         logger.info(
             "%6.2fs → %s(%s)%s"
             % (
@@ -175,27 +165,33 @@ class Worker:
                 else:
                     result = await task.function(*(job.args or []), **(job.kwargs or {}))
 
-        except Exception as e:
-            job_result.finish_time = timezone.now()
-            self.jobs_failed += 1
-            logger.error(
-                f"Run task error in {job.job_retries} times, task: {job.task}, e: {e}, retry after {self.job_retry_after} seconds"
-            )
-            await redis.zadd(
-                DELAY_QUEUE, to_ms_timestamp(self.job_retry_after), f"{queue}:{job_id}"
-            )
-            job.status = JobStatus.deferred
-        else:
             job_result.success = True
             job_result.finish_time = timezone.now()
             job.status = JobStatus.success
             logger.info("%6.2fs ← %s ● %s" % ((timestamp_ms_now() - start_ms) / 1000, ref, result))
             self.jobs_complete += 1
+
+        except Exception as e:
+            job_result.finish_time = timezone.now()
+            self.jobs_failed += 1
+            result = f"Run task error in NO.{job.job_retries} times, exc: {e}, retry after {self.job_retry_after} seconds"
+            logger.error("%6.2fs ← %s ● %s" % ((timestamp_ms_now() - start_ms) / 1000, ref, result))
+
+            if job.job_retries >= job.job_retry:
+                t = (timestamp_ms_now() - to_ms_timestamp(job.enqueue_time)) / 1000
+                logger.error("%6.2fs ! %s max retries %d exceeded" % (t, ref, job.job_retry))
+                job.status = JobStatus.failed
+            else:
+                job.status = JobStatus.deferred
+                job.job_retries = F("job_retries") + 1
+                await redis.zadd(
+                    DELAY_QUEUE, to_ms_timestamp(self.job_retry_after), f"{queue}:{job_id}"
+                )
         finally:
             await self._xack(queue, msg_id)
-        if result is not no_result:
-            job_result.result = result
-        await job.save(update_fields=["status"])
+            await job.save(update_fields=["status", "job_retries"])
+
+        job_result.result = result
         await job_result.save()
         return job_result
 
@@ -288,10 +284,10 @@ class TimerWorker(Worker):
                     timezone.now() - time
                 ).seconds > constants.WORKER_HEARTBEAT_SECONDS + 10
                 if value.get("is_timer") and not is_offline:
-                    logger.error(
-                        f"There is a timer worker `{worker_name}` already, you can only start one timer worker"
-                    )
-                    break
+                    msg = f"There is a timer worker `{worker_name}` already, you can only start one timer worker"
+
+                    logger.error(msg)
+                    raise UsageError(msg)
             else:
                 await self._push_heartbeat()
 
@@ -310,8 +306,9 @@ class TimerWorker(Worker):
                 execute = True
                 job_id = uuid4().hex
                 if task.function == check_pending_msgs:
-                    logger.info("check pending")
-                    # TODO
+                    asyncio.ensure_future(
+                        check_pending_msgs(task, task.queue, self.group_name, self.job_timeout)
+                    )
                 else:
                     logger.info(f"{task.function.__name__}()")
                     jobs.append(

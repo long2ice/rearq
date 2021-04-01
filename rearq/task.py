@@ -1,4 +1,5 @@
 import datetime
+import json
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 from uuid import uuid4
 
@@ -85,9 +86,7 @@ class Task:
         return job
 
 
-async def check_pending_msgs(
-    self: Task, queue: str, group_name: str, consumer_name: str, timeout: int
-):
+async def check_pending_msgs(self: Task, queue: str, group_name: str, timeout: int):
     """
     check pending messages
     :return:
@@ -97,10 +96,11 @@ async def check_pending_msgs(
     p = redis.pipeline()
     execute = False
     for msg in pending_msgs:
-        msg_id, _, idle_time, times = msg
+        msg_id, msg_, idle_time, times = msg
         if int(idle_time / 1000) > timeout * 2:
             execute = True
-            p.xclaim(queue, group_name, consumer_name, min_idle_time=1000, id=msg_id)
+            p.xack(queue, group_name, msg_id)
+            p.xadd(queue, json.loads(msg_))
     if execute:
         return await p.execute()
 

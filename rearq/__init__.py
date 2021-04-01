@@ -117,7 +117,7 @@ class ReArq:
             raise UsageError("Task must be Callable!")
 
         function = name or func.__name__
-        if function in self._queue_task_map:
+        if function in (self._queue_task_map.get(queue) or []):
             raise UsageError("Task name must be unique!")
 
         if function != check_pending_msgs.__name__:
