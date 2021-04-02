@@ -2,6 +2,10 @@
 
 ## 0.2
 
+### 0.2.3
+
+- Add `run_at_start` in cron task.
+
 ### 0.2.2
 
 - Add job_retry_after.

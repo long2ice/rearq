@@ -111,6 +111,7 @@ class ReArq:
         job_retry: Optional[int] = None,
         job_retry_after: Optional[int] = None,
         expire: Optional[Union[float, datetime.datetime]] = None,
+        run_at_start: Optional[bool] = False,
     ):
 
         if not callable(func):
@@ -133,7 +134,7 @@ class ReArq:
             bind=bind,
         )
         if cron:
-            t = CronTask(**defaults, cron=cron)
+            t = CronTask(**defaults, cron=cron, run_at_start=run_at_start)
             CronTask.add_cron_task(function, t)
         else:
             t = Task(**defaults)
@@ -149,10 +150,14 @@ class ReArq:
         job_retry: Optional[int] = None,
         job_retry_after: Optional[int] = None,
         expire: Optional[Union[float, datetime.datetime]] = None,
+        run_at_start: Optional[bool] = False,
     ):
+        if not cron and run_at_start:
+            raise UsageError("run_at_start only work in cron task")
+
         def wrapper(func: Callable):
             return self.create_task(
-                bind, func, queue, cron, name, job_retry, job_retry_after, expire
+                bind, func, queue, cron, name, job_retry, job_retry_after, expire, run_at_start
             )
 
         return wrapper

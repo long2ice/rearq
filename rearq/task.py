@@ -119,10 +119,12 @@ class CronTask(Task):
         job_retry_after: int,
         cron: str,
         expire: Optional[Union[float, datetime.datetime]] = None,
+        run_at_start: Optional[bool] = False,
     ):
         super().__init__(bind, function, queue, rearq, job_retry, job_retry_after, expire)
         self.crontab = CronTab(cron)
         self.cron = cron
+        self.run_at_start = run_at_start
         self.set_next()
 
     def set_next(self):

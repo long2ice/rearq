@@ -260,6 +260,30 @@ class TimerWorker(Worker):
         self.consumer_name = "timer"
         self.queue = DELAY_QUEUE
 
+    async def _run_at_start(self):
+        jobs = []
+        p = self._redis.pipeline()
+        for function, task in CronTask.get_cron_tasks().items():
+            if task.run_at_start:
+                logger.info(f"{function}() <- run at start")
+                job_id = uuid4().hex
+                jobs.append(
+                    Job(
+                        task=function,
+                        job_retry=self.job_retry,
+                        queue=task.queue,
+                        job_id=job_id,
+                        enqueue_time=timezone.now(),
+                        job_retry_after=self.job_retry_after,
+                        status=JobStatus.queued,
+                    )
+                )
+                p.xadd(task.queue, {"job_id": job_id})
+                self.jobs_complete += 1
+        if jobs:
+            await Job.bulk_create(jobs)
+            await p.execute()
+
     async def _main(self) -> None:
         tasks = list(CronTask.get_cron_tasks().keys())
         tasks.remove(check_pending_msgs.__name__)
@@ -269,6 +293,7 @@ class TimerWorker(Worker):
 
         await self.log_redis_info()
         await self.rearq.startup()
+        await self._run_at_start()
 
         async for _ in poll():
             await self._poll_iteration()
