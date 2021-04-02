@@ -11,7 +11,6 @@ from tortoise import Tortoise
 
 from rearq.constants import DEFAULT_QUEUE, DELAY_QUEUE, QUEUE_KEY_PREFIX
 from rearq.exceptions import ConfigurationError, UsageError
-from rearq.server import models
 from rearq.task import CronTask, Task, check_pending_msgs
 
 Serializer = Callable[[Dict[str, Any]], bytes]
@@ -28,7 +27,6 @@ class ReArq:
 
     def __init__(
         self,
-        db_url: str,
         redis_host: Union[str, List[Tuple[str, int]]] = "127.0.0.1",
         redis_port: int = 6379,
         redis_password: Optional[str] = None,
@@ -41,6 +39,7 @@ class ReArq:
         max_jobs: int = 10,
         job_timeout: int = 300,
         expire: Optional[Union[float, datetime.datetime]] = None,
+        tortoise_config: Optional[dict] = None,
     ):
         self.job_timeout = job_timeout
         self.max_jobs = max_jobs
@@ -54,7 +53,7 @@ class ReArq:
         self.redis_port = redis_port
         self.redis_password = redis_password
         self.redis_host = redis_host
-        self.db_url = db_url
+        self.tortoise_config = tortoise_config
 
     async def init(self):
         if self._pool:
@@ -80,7 +79,7 @@ class ReArq:
         )
         self._redis = Redis(self._pool)
 
-        await Tortoise.init(db_url=self.db_url, modules={"models": [models]}, use_tz=True)
+        await Tortoise.init(config=self.tortoise_config)
         await Tortoise.generate_schemas()
 
     @property

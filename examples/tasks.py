@@ -4,8 +4,16 @@ import os
 from loguru import logger
 
 from rearq import ReArq, Task
+from rearq.server import models
 
-rearq = ReArq(db_url=f"mysql://root:{os.getenv('MYSQL_PASS') or '123456'}@127.0.0.1:3306/rearq")
+config = {
+    "connections": {
+        "default": f"mysql://root:{os.getenv('MYSQL_PASS') or '123456'}@127.0.0.1:3306/rearq"
+    },
+    "apps": {"models": {"models": [models], "default_connection": "default"}},
+    "use_tz": True,
+}
+rearq = ReArq(tortoise_config=config)
 
 
 @rearq.on_shutdown
