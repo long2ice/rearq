@@ -200,16 +200,15 @@ class Worker:
         return f"{self.group_name}-{self.consumer_name}"
 
     async def _push_heartbeat(self, is_offline: bool = False):
-        value = {
-            "queue": self.queue,
-            "is_timer": isinstance(self, TimerWorker),
-        }
         if is_offline:
-            ms = 0
+            await self._redis.hdel(constants.WORKER_KEY, self.worker_name)
         else:
-            ms = timestamp_ms_now()
-        value.update({"ms": ms})
-        await self._redis.hset(constants.WORKER_KEY, self.worker_name, value=json.dumps(value))
+            value = {
+                "queue": self.queue,
+                "is_timer": isinstance(self, TimerWorker),
+                "ms": timestamp_ms_now(),
+            }
+            await self._redis.hset(constants.WORKER_KEY, self.worker_name, value=json.dumps(value))
 
     async def _heartbeat(self):
         """
