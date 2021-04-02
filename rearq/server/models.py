@@ -15,6 +15,9 @@ class Job(Model):
     expire_time = fields.DatetimeField(null=True)
     status = fields.CharEnumField(job.JobStatus)
 
+    class Meta:
+        ordering = ['-id']
+
 
 class JobResult(Model):
     job: fields.ForeignKeyRelation[Job] = fields.ForeignKeyField("models.Job")
@@ -24,3 +27,6 @@ class JobResult(Model):
     result = fields.TextField(null=True)
     start_time = fields.DatetimeField(null=True)
     finish_time = fields.DatetimeField(null=True)
+
+    class Meta:
+        ordering = ['-id']
