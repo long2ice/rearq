@@ -139,7 +139,9 @@ class Worker:
             return
         redis = self._redis
         job_id = job.job_id
-        job_result = JobResult(job=job, worker=self.worker_name, start_time=timezone.now())
+        job_result = JobResult(
+            msg_id=msg_id, job=job, worker=self.worker_name, start_time=timezone.now()
+        )
         task = self._task_map.get(job.task)
         if not task:
             logger.warning(f"job {job_id}, task {job.task} not found")

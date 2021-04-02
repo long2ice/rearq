@@ -1,5 +1,4 @@
 import datetime
-import json
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 from uuid import uuid4
 
@@ -9,7 +8,7 @@ from tortoise import timezone
 
 from rearq.constants import DELAY_QUEUE
 from rearq.job import JobStatus
-from rearq.server.models import Job
+from rearq.server.models import Job, JobResult
 from rearq.utils import ms_to_datetime, timestamp_ms_now, to_ms_timestamp
 
 
@@ -96,11 +95,14 @@ async def check_pending_msgs(self: Task, queue: str, group_name: str, timeout: i
     p = redis.pipeline()
     execute = False
     for msg in pending_msgs:
-        msg_id, msg_, idle_time, times = msg
+        msg_id, _, idle_time, times = msg
+        job_result = await JobResult.filter(msg_id=msg_id).only("job_id").first()
+        if not job_result:
+            continue
         if int(idle_time / 1000) > timeout * 2:
             execute = True
             p.xack(queue, group_name, msg_id)
-            p.xadd(queue, json.loads(msg_))
+            p.xadd(queue, {"job_id": job_result.job_id})
     if execute:
         return await p.execute()
 
