@@ -20,6 +20,6 @@ class JobResult(Model):
     job: fields.ForeignKeyRelation[Job] = fields.ForeignKeyField("models.Job")
     worker = fields.CharField(max_length=200)
     success = fields.BooleanField(default=False)
-    result = fields.CharField(max_length=200, null=True)
+    result = fields.TextField(null=True)
     start_time = fields.DatetimeField(null=True)
     finish_time = fields.DatetimeField(null=True)
