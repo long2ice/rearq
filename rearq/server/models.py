@@ -16,7 +16,7 @@ class Job(Model):
     status = fields.CharEnumField(job.JobStatus)
 
     class Meta:
-        ordering = ['-id']
+        ordering = ["-id"]
 
 
 class JobResult(Model):
@@ -29,4 +29,4 @@ class JobResult(Model):
     finish_time = fields.DatetimeField(null=True)
 
     class Meta:
-        ordering = ['-id']
+        ordering = ["-id"]
