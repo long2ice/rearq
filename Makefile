@@ -21,6 +21,7 @@ test: deps
 	$(py_warn) pytest
 
 build: deps
+	@rm -rf dist
 	@poetry build
 
 ci: deps check test
