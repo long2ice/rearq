@@ -137,7 +137,6 @@ class Worker:
             job.status = JobStatus.expired
             await job.save(update_fields=["status"])
             return
-        redis = self._redis
         job_id = job.job_id
         job_result = JobResult(
             msg_id=msg_id, job=job, worker=self.worker_name, start_time=timezone.now()
@@ -186,9 +185,7 @@ class Worker:
             else:
                 job.status = JobStatus.deferred
                 job.job_retries = F("job_retries") + 1
-                await redis.zadd(
-                    DELAY_QUEUE, to_ms_timestamp(self.job_retry_after), f"{queue}:{job_id}"
-                )
+                await self.rearq.zadd(to_ms_timestamp(self.job_retry_after), f"{queue}:{job_id}")
         finally:
             await self._xack(queue, msg_id)
             await job.save(update_fields=["status", "job_retries"])
@@ -363,15 +360,18 @@ class TimerWorker(Worker):
         """
         redis = self._redis
         now = timestamp_ms_now()
-        jobs_id = await redis.zrangebyscore(
-            DELAY_QUEUE, offset=0, count=self.queue_read_limit, max=now
-        )
-        if not jobs_id:
-            return
         p = redis.pipeline()
-        for job_id in jobs_id:  # type:str
-            separate = job_id.rindex(":")
-            queue, job_id = job_id[:separate], job_id[separate + 1 :]  # noqa:
-            p.xadd(queue, {"job_id": job_id})
-        p.zrem(DELAY_QUEUE, *jobs_id)
-        await p.execute()
+        for queue in self.rearq.delay_queues:
+            p.zrangebyscore(queue, offset=0, count=self.queue_read_limit, max=now)
+        jobs_id_list = await p.execute()
+        p = redis.pipeline()
+        execute = False
+        for jobs_id_info in jobs_id_list:
+            for job_id_info in jobs_id_info:
+                execute = True
+                separate = job_id_info.rindex(":")
+                queue, job_id = job_id_info[:separate], job_id_info[separate + 1 :]  # noqa:
+                p.xadd(queue, {"job_id": job_id})
+                queue = self.rearq.get_delay_queue(job_id_info)
+                p.zrem(queue, job_id_info)
+        execute and await p.execute()

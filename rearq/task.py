@@ -6,7 +6,6 @@ from crontab import CronTab
 from loguru import logger
 from tortoise import timezone
 
-from rearq.constants import DELAY_QUEUE
 from rearq.job import JobStatus
 from rearq.server.models import Job, JobResult
 from rearq.utils import ms_to_datetime, timestamp_ms_now, to_ms_timestamp
@@ -43,6 +42,18 @@ class Task:
         job_retry: int = 0,
         job_retry_after: int = 60,
     ) -> Job:
+        """
+        Add job to queue.
+        :param args: Job args.
+        :param kwargs: Job kwargs.
+        :param job_id: Custom job id.
+        :param countdown: Delay seconds to execute.
+        :param eta: Delay to datetime to execute.
+        :param expire: Override default expire.
+        :param job_retry: Override default job retry.
+        :param job_retry_after: Override default job retry after.
+        :return:
+        """
         if not job_id:
             job_id = uuid4().hex
         if countdown:
@@ -80,7 +91,7 @@ class Task:
         else:
             job.status = JobStatus.deferred
             await job.save()
-            await self.rearq.redis.zadd(DELAY_QUEUE, defer_ts, f"{self.queue}:{job_id}")
+            await self.rearq.zadd(defer_ts, f"{self.queue}:{job_id}")
 
         return job
 

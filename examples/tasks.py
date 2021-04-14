@@ -13,7 +13,7 @@ config = {
     "apps": {"models": {"models": [models], "default_connection": "default"}},
     "use_tz": True,
 }
-rearq = ReArq(tortoise_config=config)
+rearq = ReArq(tortoise_config=config, delay_queue_num=2)
 
 
 @rearq.on_shutdown

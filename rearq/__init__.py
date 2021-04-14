@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import functools
+import hashlib
 from functools import wraps
 from ssl import SSLContext
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
@@ -9,7 +10,7 @@ import aioredis
 from aioredis import ConnectionsPool, Redis
 from tortoise import Tortoise
 
-from rearq.constants import DEFAULT_QUEUE, DELAY_QUEUE, QUEUE_KEY_PREFIX
+from rearq import constants
 from rearq.exceptions import ConfigurationError, UsageError
 from rearq.task import CronTask, Task, check_pending_msgs
 
@@ -40,7 +41,24 @@ class ReArq:
         job_timeout: int = 300,
         expire: Optional[Union[float, datetime.datetime]] = None,
         tortoise_config: Optional[dict] = None,
+        delay_queue_num: int = 1,
     ):
+        """
+        :param redis_host:
+        :param redis_port:
+        :param redis_password:
+        :param redis_db:
+        :param ssl:
+        :param sentinel:
+        :param sentinel_master:
+        :param job_retry: Default job retry times.
+        :param job_retry_after: Default job retry after seconds.
+        :param max_jobs: Max concurrent jobs.
+        :param job_timeout: Job max timeout.
+        :param expire: Job default expire time.
+        :param tortoise_config: TortoiseORM configuration dict.
+        :param delay_queue_num: How many key to store delay tasks, for large number of tasks, split it to improve performance.
+        """
         self.job_timeout = job_timeout
         self.max_jobs = max_jobs
         self.job_retry = job_retry
@@ -54,6 +72,7 @@ class ReArq:
         self.redis_password = redis_password
         self.redis_host = redis_host
         self.tortoise_config = tortoise_config
+        self.delay_queue_num = delay_queue_num
 
     async def init(self):
         if self._pool:
@@ -125,7 +144,7 @@ class ReArq:
 
         defaults = dict(
             function=func,
-            queue=QUEUE_KEY_PREFIX + queue if queue else DEFAULT_QUEUE,
+            queue=constants.QUEUE_KEY_PREFIX + queue if queue else constants.DEFAULT_QUEUE,
             rearq=self,
             job_retry=job_retry or self.job_retry,
             job_retry_after=job_retry_after or self.job_retry_after,
@@ -151,6 +170,18 @@ class ReArq:
         expire: Optional[Union[float, datetime.datetime]] = None,
         run_at_start: Optional[bool] = False,
     ):
+        """
+        Task decorator
+        :param bind: Bind task obj to first argument.
+        :param queue: Default queue.
+        :param cron: See https://github.com/josiahcarlson/parse-crontab, if defined, which is a cron task.
+        :param name: Task name, default is function name.
+        :param job_retry: Override default job retry.
+        :param job_retry_after: Override default job retry after.
+        :param expire: Override default expire.
+        :param run_at_start: Whether run at startup, only available for cron task.
+        :return:
+        """
         if not cron and run_at_start:
             raise UsageError("run_at_start only work in cron task")
 
@@ -201,10 +232,15 @@ class ReArq:
         self._pool = None
         await Tortoise.close_connections()
 
-    async def cancel(self, job_id: str):
-        """
-        cancel delay task
-        :param job_id:
-        :return:
-        """
-        return await self._redis.zrem(DELAY_QUEUE, job_id)
+    def get_delay_queue(self, data: str):
+        num = int(hashlib.md5(data.encode()).hexdigest(), 16) % self.delay_queue_num  # nosec:B303
+        return f"{constants.DELAY_QUEUE}:{num}"
+
+    @property
+    def delay_queues(self):
+        for num in range(self.delay_queue_num):
+            yield f"{constants.DELAY_QUEUE}:{num}"
+
+    async def zadd(self, score: int, data: str):
+        queue = self.get_delay_queue(data)
+        return await self.redis.zadd(queue, score, data)

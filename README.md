@@ -127,9 +127,7 @@ async def test():
     return job.info()
 ```
 
-## Start server
-
-You can start the web interface.
+## Start web interface
 
 ```shell
 > rearq main:rearq server

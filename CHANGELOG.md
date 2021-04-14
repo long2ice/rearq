@@ -2,6 +2,10 @@
 
 ## 0.2
 
+### 0.2.4
+
+- Allow split delay queues.
+
 ### 0.2.3
 
 - Add `run_at_start` in cron task.
