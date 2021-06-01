@@ -12,6 +12,7 @@ from tortoise import Tortoise
 
 from rearq import constants
 from rearq.exceptions import ConfigurationError, UsageError
+from rearq.server import models
 from rearq.task import CronTask, Task, check_pending_msgs
 
 Serializer = Callable[[Dict[str, Any]], bytes]
@@ -28,6 +29,7 @@ class ReArq:
 
     def __init__(
         self,
+        db_url: str,
         redis_host: Union[str, List[Tuple[str, int]]] = "127.0.0.1",
         redis_port: int = 6379,
         redis_password: Optional[str] = None,
@@ -40,7 +42,6 @@ class ReArq:
         max_jobs: int = 10,
         job_timeout: int = 300,
         expire: Optional[Union[float, datetime.datetime]] = None,
-        tortoise_config: Optional[dict] = None,
         delay_queue_num: int = 1,
     ):
         """
@@ -56,7 +57,7 @@ class ReArq:
         :param max_jobs: Max concurrent jobs.
         :param job_timeout: Job max timeout.
         :param expire: Job default expire time.
-        :param tortoise_config: TortoiseORM configuration dict.
+        :param db_url: database url.
         :param delay_queue_num: How many key to store delay tasks, for large number of tasks, split it to improve performance.
         """
         self.job_timeout = job_timeout
@@ -71,7 +72,7 @@ class ReArq:
         self.redis_port = redis_port
         self.redis_password = redis_password
         self.redis_host = redis_host
-        self.tortoise_config = tortoise_config
+        self.db_url = db_url
         self.delay_queue_num = delay_queue_num
 
     async def init(self):
@@ -97,8 +98,13 @@ class ReArq:
             addr, db=self.redis_db, password=self.redis_password, encoding="utf8"
         )
         self._redis = Redis(self._pool)
-
-        await Tortoise.init(config=self.tortoise_config)
+        await Tortoise.init(
+            config={
+                "connections": {"default": self.db_url},
+                "apps": {"models": {"models": [models], "default_connection": "default"}},
+                "use_tz": True,
+            }
+        )
         await Tortoise.generate_schemas()
 
     @property

@@ -70,12 +70,20 @@ class Worker:
         sig = Signals(signum)
         logger.info(
             "shutdown on %s ◆ %d jobs complete ◆ %d failed ◆ %d retries ◆ %d ongoing to cancel"
-            % (sig.name, self.jobs_complete, self.jobs_failed, self.jobs_retried, len(self.tasks),)
+            % (
+                sig.name,
+                self.jobs_complete,
+                self.jobs_failed,
+                self.jobs_retried,
+                len(self.tasks),
+            )
         )
         for t in asyncio.all_tasks():
             t.cancel()
 
-    async def log_redis_info(self,) -> None:
+    async def log_redis_info(
+        self,
+    ) -> None:
         p = self._redis.pipeline()
         p.info()
         p.dbsize()

@@ -46,7 +46,9 @@ async def cli(ctx: Context, rearq: str, verbose):
 @cli.command(help="Start a worker.")
 @click.option("-q", "--queue", required=False, help="Queue to consume.")
 @click.option(
-    "--group-name", required=False, help="Group name.",
+    "--group-name",
+    required=False,
+    help="Group name.",
 )
 @click.option("--consumer-name", required=False, help="Consumer name.")
 @click.pass_context

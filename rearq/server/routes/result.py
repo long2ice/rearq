@@ -46,7 +46,8 @@ async def delete_result(ids: str):
 
 @router.get("", include_in_schema=False)
 async def result(
-    request: Request, rearq: ReArq = Depends(get_rearq),
+    request: Request,
+    rearq: ReArq = Depends(get_rearq),
 ):
     workers_info = await rearq.redis.hgetall(constants.WORKER_KEY)
 

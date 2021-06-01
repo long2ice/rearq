@@ -41,17 +41,8 @@ Use PostgreSQL backend:
 ```python
 # main.py
 from rearq import ReArq
-from rearq.server import models
 
-config = {
-    "connections": {
-        "default": f"mysql://root:123456@127.0.0.1:3306/rearq"
-    },
-    "apps": {"models": {"models": [models], "default_connection": "default"}},
-    "use_tz": True,
-}
-
-rearq = ReArq(tortoise_config=config)
+rearq = ReArq(db_url='mysql://root:123456@127.0.0.1:3306/rearq')
 
 
 @rearq.on_shutdown

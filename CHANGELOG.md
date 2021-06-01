@@ -5,6 +5,7 @@
 ### 0.2.4
 
 - Allow split delay queues.
+- Remove `tortoise_config` and add `db_url`.
 
 ### 0.2.3
 
