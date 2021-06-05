@@ -2,11 +2,12 @@ import asyncio
 import os
 
 from loguru import logger
+from tortoise import Tortoise
 
 from rearq import ReArq, Task
+from rearq.server import models
 
 rearq = ReArq(
-    db_url=f"mysql://root:{os.getenv('MYSQL_PASS') or '123456'}@127.0.0.1:3306/rearq",
     delay_queue_num=2,
 )
 
@@ -14,10 +15,15 @@ rearq = ReArq(
 @rearq.on_shutdown
 async def on_shutdown():
     logger.debug("rearq is shutdown")
+    await Tortoise.close_connections()
 
 
 @rearq.on_startup
 async def on_startup():
+    await Tortoise.init(
+        db_url=f"mysql://root:{os.getenv('MYSQL_PASS') or '123456'}@127.0.0.1:3306/rearq",
+        modules={"models": [models]},
+    )
     logger.debug("rearq is startup")
 
 
