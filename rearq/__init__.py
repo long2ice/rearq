@@ -225,7 +225,6 @@ class ReArq:
         self._pool.close()
         await self._pool.wait_closed()
         self._pool = None
-        await Tortoise.close_connections()
 
     def get_delay_queue(self, data: str):
         num = int(hashlib.md5(data.encode()).hexdigest(), 16) % self.delay_queue_num  # nosec:B303
