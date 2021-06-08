@@ -8,11 +8,9 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import aioredis
 from aioredis import ConnectionsPool, Redis
-from tortoise import Tortoise
 
 from rearq import constants
 from rearq.exceptions import ConfigurationError, UsageError
-from rearq.server import models
 from rearq.task import CronTask, Task, check_pending_msgs
 
 Serializer = Callable[[Dict[str, Any]], bytes]
