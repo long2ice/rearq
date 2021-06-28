@@ -11,7 +11,7 @@ from aioredis import ConnectionsPool, Redis
 
 from rearq import constants
 from rearq.exceptions import ConfigurationError, UsageError
-from rearq.task import CronTask, Task, check_pending_msgs
+from rearq.task import CronTask, Task, is_built_task
 
 Serializer = Callable[[Dict[str, Any]], bytes]
 Deserializer = Callable[[bytes], Dict[str, Any]]
@@ -40,6 +40,7 @@ class ReArq:
         job_timeout: int = 300,
         expire: Optional[Union[float, datetime.datetime]] = None,
         delay_queue_num: int = 1,
+        keep_job_days: Optional[int] = None,
     ):
         """
         :param redis_host:
@@ -69,6 +70,7 @@ class ReArq:
         self.redis_password = redis_password
         self.redis_host = redis_host
         self.delay_queue_num = delay_queue_num
+        self.keep_job_days = keep_job_days
 
     async def init(self):
         if self._pool:
@@ -132,7 +134,7 @@ class ReArq:
         if function in (self._queue_task_map.get(queue) or []):
             raise UsageError("Task name must be unique!")
 
-        if function != check_pending_msgs.__name__:
+        if not is_built_task(function):
             self._queue_task_map.setdefault(queue, []).append(function)
 
         defaults = dict(

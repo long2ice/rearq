@@ -7,9 +7,7 @@ from tortoise import Tortoise
 from rearq import ReArq, Task
 from rearq.server import models
 
-rearq = ReArq(
-    delay_queue_num=2,
-)
+rearq = ReArq(delay_queue_num=2, keep_job_days=7)
 
 
 @rearq.on_shutdown

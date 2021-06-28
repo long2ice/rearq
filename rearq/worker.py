@@ -18,7 +18,7 @@ from rearq import CronTask, UsageError, constants
 from rearq.constants import DEFAULT_QUEUE, DELAY_QUEUE, QUEUE_KEY_PREFIX
 from rearq.job import JobStatus
 from rearq.server.models import Job, JobResult
-from rearq.task import check_pending_msgs
+from rearq.task import check_keep_job, check_pending_msgs
 from rearq.utils import args_to_string, ms_to_datetime, poll, timestamp_ms_now, to_ms_timestamp
 
 if TYPE_CHECKING:
@@ -62,6 +62,8 @@ class Worker:
         self._add_signal_handler(signal.SIGINT, self.handle_sig)
         self._add_signal_handler(signal.SIGTERM, self.handle_sig)
         self.rearq.create_task(True, check_pending_msgs, queue, "* * * * *")
+        if rearq.keep_job_days:
+            self.rearq.create_task(True, check_keep_job, queue, "0 4 * * *")
 
     def _add_signal_handler(self, signum: Signals, handler: Callable[[Signals], None]) -> None:
         self.loop.add_signal_handler(signum, partial(handler, signum))
@@ -293,6 +295,7 @@ class TimerWorker(Worker):
     async def _main(self) -> None:
         tasks = list(CronTask.get_cron_tasks().keys())
         tasks.remove(check_pending_msgs.__name__)
+        tasks.remove(check_keep_job.__name__)
         logger.info("Start timer success")
         logger.add(f"logs/worker-{self.consumer_name}.log", rotation="00:00")
         logger.info(f"Registered timer tasks: {', '.join(tasks)}")
@@ -340,6 +343,8 @@ class TimerWorker(Worker):
                     asyncio.ensure_future(
                         check_pending_msgs(task, task.queue, self.group_name, self.job_timeout)
                     )
+                elif task.function == check_keep_job:
+                    asyncio.ensure_future(check_keep_job(task))
                 else:
                     logger.info(f"{task.function.__name__}()")
                     jobs.append(

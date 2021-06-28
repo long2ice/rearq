@@ -118,6 +118,15 @@ async def check_pending_msgs(self: Task, queue: str, group_name: str, timeout: i
         return await p.execute()
 
 
+async def check_keep_job(self: Task):
+    rearq = self.rearq
+    keep_job_days = rearq.keep_job_days
+    time = timezone.now() - datetime.timedelta(days=keep_job_days)
+    return await Job.filter(
+        status__in=[JobStatus.failed, JobStatus.success, JobStatus.expired], enqueue_time__lt=time
+    ).delete()
+
+
 class CronTask(Task):
     _cron_tasks: Dict[str, "CronTask"] = {}
     next_run: int
@@ -150,3 +159,7 @@ class CronTask(Task):
     @classmethod
     def get_cron_tasks(cls):
         return cls._cron_tasks
+
+
+def is_built_task(task: str):
+    return task in [check_pending_msgs.__name__, check_keep_job.__name__]
