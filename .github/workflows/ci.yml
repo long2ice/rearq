@@ -30,4 +30,5 @@ jobs:
       - name: CI
         env:
           MYSQL_PASS: root
+          CRYPTOGRAPHY_DONT_BUILD_RUST: 1
         run: make ci
