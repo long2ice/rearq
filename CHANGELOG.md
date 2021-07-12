@@ -6,6 +6,7 @@
 
 - Allow split delay queues.
 - Remove `tortoise_config` and add `db_url`.
+- Fix remove check_keep_job.
 
 ### 0.2.3
 

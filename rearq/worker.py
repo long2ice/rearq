@@ -295,7 +295,8 @@ class TimerWorker(Worker):
     async def _main(self) -> None:
         tasks = list(CronTask.get_cron_tasks().keys())
         tasks.remove(check_pending_msgs.__name__)
-        tasks.remove(check_keep_job.__name__)
+        if self.rearq.keep_job_days:
+            tasks.remove(check_keep_job.__name__)
         logger.info("Start timer success")
         logger.add(f"logs/worker-{self.consumer_name}.log", rotation="00:00")
         logger.info(f"Registered timer tasks: {', '.join(tasks)}")
