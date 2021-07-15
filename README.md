@@ -41,12 +41,18 @@ Use PostgreSQL backend:
 ```python
 # main.py
 from rearq import ReArq
+from rearq.server import models
+from tortoise import Tortoise
 
-rearq = ReArq(db_url='mysql://root:123456@127.0.0.1:3306/rearq')
+rearq = ReArq()
 
 
 @rearq.on_shutdown
 async def on_shutdown():
+    await Tortoise.init(
+        db_url=f"mysql://root:123456@127.0.0.1:3306/rearq",
+        modules={"models": [models]},
+    )
     # you can do some clean work here like close db and so on...
     print("shutdown")
 
