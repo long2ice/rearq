@@ -2,6 +2,10 @@
 
 ## 0.2
 
+### 0.2.5
+
+- Upgrade `aioredis` to `2.0`.
+
 ### 0.2.4
 
 - Allow split delay queues.

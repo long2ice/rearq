@@ -102,7 +102,10 @@ async def check_pending_msgs(self: Task, queue: str, group_name: str, timeout: i
     :return:
     """
     redis = self.rearq.redis
-    pending_msgs = await redis.xpending(self.queue, group_name, "-", "+", 10)
+    pending = await redis.xpending(self.queue, group_name)
+    pending_msgs = await redis.xpending_range(
+        self.queue, group_name, pending.get("min"), pending.get("max"), pending.get("pending")
+    )
     p = redis.pipeline()
     execute = False
     for msg in pending_msgs:

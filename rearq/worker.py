@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Set
 from uuid import uuid4
 
 import async_timeout
-from aioredis.errors import BusyGroupError
-from aioredlock import Aioredlock
+from aioredis import ResponseError
+from aioredis.lock import Lock
 from loguru import logger
 from tortoise import timezone
 from tortoise.expressions import F
@@ -43,7 +43,7 @@ class Worker:
         self.max_jobs = rearq.max_jobs
         self.rearq = rearq
         self._redis = rearq.redis
-        self._lock_manager = Aioredlock([(rearq.redis_host, rearq.redis_port)])
+        self._lock = Lock(self._redis, name=constants.WORKER_KEY_LOCK)
         self.register_tasks = rearq.get_queue_tasks(queue)
         if queue:
             self.queue = QUEUE_KEY_PREFIX + queue
@@ -92,9 +92,9 @@ class Worker:
         info, key_count = await p.execute()
 
         logger.info(
-            f'redis_version={info["server"]["redis_version"]} '
-            f'mem_usage={info["memory"]["used_memory_human"]} '
-            f'clients_connected={info["clients"]["connected_clients"]} '
+            f'redis_version={info["redis_version"]} '
+            f'mem_usage={info["used_memory_human"]} '
+            f'clients_connected={info["connected_clients"]} '
             f"db_keys={key_count}"
         )
 
@@ -104,35 +104,39 @@ class Worker:
         logger.info(f"Registered tasks: {', '.join(self.register_tasks)}")
         await self.log_redis_info()
         await self.rearq.startup()
-        with await self._redis as redis:
-            while True:
-                msgs = await redis.xread_group(
-                    self.group_name,
-                    self.consumer_name,
-                    [self.queue],
-                    count=self.queue_read_limit,
-                    latest_ids=[">"],
-                )
-                async with self.sem:
-                    jobs_id = list(map(lambda m: m[2].get("job_id"), msgs))
-                    qs = Job.filter(job_id__in=jobs_id)
-                    await qs.update(status=JobStatus.in_progress)
-                    jobs = await qs
-                    jobs_dict = {job.job_id: job for job in jobs}
-                    for msg in msgs:
-                        await self.sem.acquire()
-                        queue, msg_id, job = msg
-                        job_id = job.get("job_id")
-                        job = jobs_dict.get(job_id)
-                        if not job:
-                            logger.warning(f"job {job_id} not found")
-                            await self._xack(queue, msg_id)
-                            self.sem.release()
-                            continue
-                        task = self.loop.create_task(self.run_job(queue, msg_id, job))
-                        task.add_done_callback(self._task_done)
-                        self.tasks.add(task)
-                await asyncio.gather(*self.tasks)
+        while True:
+            msgs = await self._redis.xreadgroup(
+                self.group_name,
+                self.consumer_name,
+                streams={self.queue: ">"},
+                count=self.queue_read_limit,
+                block=2000,
+            )
+            if not msgs:
+                continue
+            jobs_id = []
+            for msg in msgs:
+                queue, msg_items = msg
+                for msg_item in msg_items:
+                    jobs_id.append(msg_item[1].get("job_id"))
+            qs = Job.filter(job_id__in=jobs_id)
+            await qs.update(status=JobStatus.in_progress)
+            jobs = await qs
+            jobs_dict = {job.job_id: job for job in jobs}
+            for msg in msgs:
+                queue, msg_items = msg
+                for msg_item in msg_items:
+                    msg_id, job = msg_item
+                    job_id = job.get("job_id")
+                    job = jobs_dict.get(job_id)
+                    if not job:
+                        logger.warning(f"job {job_id} not found")
+                        await self._xack(queue, msg_id)
+                        continue
+                    task = self.loop.create_task(self.run_job(queue, msg_id, job))
+                    task.add_done_callback(self._task_done)
+                    self.tasks.add(task)
+            await asyncio.gather(*self.tasks)
 
     def _task_done(self, task):
         self.sem.release()
@@ -142,6 +146,7 @@ class Worker:
         await self._redis.xack(queue, self.group_name, msg_id)
 
     async def run_job(self, queue: str, msg_id: str, job: Job):
+        await self.sem.acquire()
         if job.expire_time and job.expire_time > timezone.now():
             logger.warning(f"job {job.job_id} is expired, ignore")
             job.status = JobStatus.expired
@@ -229,13 +234,14 @@ class Worker:
 
     async def _pre_run(self):
         try:
-            await self._redis.xgroup_create(
-                self.queue, self.group_name, latest_id="$", mkstream=True
-            )
-        except BusyGroupError:
-            pass
+            await self._redis.xgroup_create(self.queue, self.group_name, mkstream=True)
+        except ResponseError as e:
+            if "BUSYGROUP Consumer Group name already exists" == str(e):
+                pass
+            else:
+                raise e
         if not self.consumer_name:
-            async with await self._lock_manager.lock(constants.WORKER_KEY_LOCK):
+            async with self._lock:
                 workers = await self._redis.hgetall(constants.WORKER_KEY)
                 length = len(
                     list(
@@ -310,7 +316,7 @@ class TimerWorker(Worker):
             await self.run_cron()
 
     async def _pre_run(self):
-        async with await self._lock_manager.lock(constants.WORKER_KEY_LOCK):
+        async with self._lock:
             workers_info = await self._redis.hgetall(constants.WORKER_KEY)
             for worker_name, value in workers_info.items():
                 value = json.loads(value)
@@ -376,7 +382,7 @@ class TimerWorker(Worker):
         now = timestamp_ms_now()
         p = redis.pipeline()
         for queue in self.rearq.delay_queues:
-            p.zrangebyscore(queue, offset=0, count=self.queue_read_limit, max=now)
+            p.zrangebyscore(queue, start=0, num=self.queue_read_limit, max=now, min=-1)
         jobs_id_list = await p.execute()
         p = redis.pipeline()
         execute = False

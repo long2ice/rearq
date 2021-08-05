@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rearq"
-version = "0.2.4"
+version = "0.2.5"
 description = "Rewrite arq and make improvement."
 authors = ["long2ice <long2ice@gmail.com>"]
 license = "Apache-2.0"
@@ -28,7 +28,6 @@ aiofiles = "*"
 tortoise-orm = "*"
 asyncmy = { version = "*", optional = true }
 asyncpg = { version = "*", optional = true }
-aioredlock = "*"
 
 [tool.poetry.dev-dependencies]
 flake8 = "*"

@@ -1,16 +1,15 @@
 import asyncio
 import datetime
-import functools
 import hashlib
 from functools import wraps
-from ssl import SSLContext
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import aioredis
-from aioredis import ConnectionsPool, Redis
+import aioredis.sentinel
+from aioredis import Redis
 
 from rearq import constants
-from rearq.exceptions import ConfigurationError, UsageError
+from rearq.exceptions import UsageError
 from rearq.task import CronTask, Task, is_built_task
 
 Serializer = Callable[[Dict[str, Any]], bytes]
@@ -18,7 +17,6 @@ Deserializer = Callable[[bytes], Dict[str, Any]]
 
 
 class ReArq:
-    _pool: Optional[ConnectionsPool] = None
     _redis: Optional[Redis] = None
     _task_map: Dict[str, Task] = {}
     _queue_task_map: Dict[str, List[str]] = {}
@@ -31,8 +29,7 @@ class ReArq:
         redis_port: int = 6379,
         redis_password: Optional[str] = None,
         redis_db=0,
-        ssl: Union[bool, None, SSLContext] = None,
-        sentinel: bool = False,
+        sentinels: Optional[List[str]] = None,
         sentinel_master: str = "master",
         job_retry: int = 3,
         job_retry_after: int = 60,
@@ -47,8 +44,6 @@ class ReArq:
         :param redis_port:
         :param redis_password:
         :param redis_db:
-        :param ssl:
-        :param sentinel:
         :param sentinel_master:
         :param job_retry: Default job retry times.
         :param job_retry_after: Default job retry after seconds.
@@ -62,8 +57,7 @@ class ReArq:
         self.job_retry = job_retry
         self.job_retry_after = job_retry_after
         self.expire = expire
-        self.sentinel = sentinel
-        self.ssl = ssl
+        self.sentinels = sentinels
         self.sentinel_master = sentinel_master
         self.redis_db = redis_db
         self.redis_port = redis_port
@@ -73,28 +67,20 @@ class ReArq:
         self.keep_job_days = keep_job_days
 
     async def init(self):
-        if self._pool:
+        if self._redis:
             return
 
-        if type(self.redis_host) is str and self.sentinel:
-            raise ConfigurationError(
-                "str provided for `redis_host` but `sentinel` is true, list of sentinels expected"
-            )
-
-        if self.sentinel:
-            addr = self.redis_host
-
-            async def pool_factory(*args: Any, **kwargs: Any) -> ConnectionsPool:
-                client = await aioredis.sentinel.create_sentinel_pool(*args, ssl=self.ssl, **kwargs)
-                return client.master_for(self.sentinel_master)
+        if self.sentinels:
+            sentinel = aioredis.sentinel.Sentinel(self.sentinels, decode_responses=True)
+            redis = sentinel.master_for(self.sentinel_master)
 
         else:
-            pool_factory = functools.partial(aioredis.create_pool, ssl=self.ssl)
-            addr = self.redis_host, self.redis_port
-        self._pool = await pool_factory(
-            addr, db=self.redis_db, password=self.redis_password, encoding="utf8"
-        )
-        self._redis = Redis(self._pool)
+            redis = aioredis.from_url(
+                f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}",
+                password=self.redis_password,
+                decode_responses=True,
+            )
+        self._redis = redis
 
     @property
     def redis(self):
@@ -220,11 +206,10 @@ class ReArq:
             await asyncio.gather(*tasks)
 
     async def close(self):
-        if not self._pool:
+        if not self._redis:
             return
-        self._pool.close()
-        await self._pool.wait_closed()
-        self._pool = None
+        await self._redis.close()
+        self._redis = None
 
     def get_delay_queue(self, data: str):
         num = int(hashlib.md5(data.encode()).hexdigest(), 16) % self.delay_queue_num  # nosec:B303
@@ -237,4 +222,4 @@ class ReArq:
 
     async def zadd(self, score: int, data: str):
         queue = self.get_delay_queue(data)
-        return await self.redis.zadd(queue, score, data)
+        return await self.redis.zadd(queue, mapping={data: score})
