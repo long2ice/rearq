@@ -49,16 +49,17 @@ rearq = ReArq()
 
 @rearq.on_shutdown
 async def on_shutdown():
-    await Tortoise.init(
-        db_url=f"mysql://root:123456@127.0.0.1:3306/rearq",
-        modules={"models": [models]},
-    )
     # you can do some clean work here like close db and so on...
     print("shutdown")
 
 
 @rearq.on_startup
 async def on_startup():
+    # init tortoise
+    await Tortoise.init(
+        db_url=f"mysql://root:123456@127.0.0.1:3306/rearq",
+        modules={"models": [models]},
+    )
     # you should do some initialization work here, such tortoise-orm init and so on...
     print("startup")
 
@@ -147,4 +148,4 @@ and [https://127.0.0.1:8000](https://127.0.0.1:8000) to see web interface.
 
 ## License
 
-This project is licensed under the [MIT](https://github.com/long2ice/rearq/blob/master/LICENSE) License.
+This project is under the [MIT](https://github.com/long2ice/rearq/blob/master/LICENSE) License.
