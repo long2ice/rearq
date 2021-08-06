@@ -103,20 +103,27 @@ async def check_pending_msgs(self: Task, queue: str, group_name: str, timeout: i
     """
     redis = self.rearq.redis
     pending = await redis.xpending(self.queue, group_name)
+    count = pending.get("pending")
+    if not count:
+        return
     pending_msgs = await redis.xpending_range(
-        self.queue, group_name, pending.get("min"), pending.get("max"), pending.get("pending")
+        self.queue,
+        group_name,
+        min=pending.get("min"),
+        max=pending.get("max"),
+        count=count,
     )
     p = redis.pipeline()
     execute = False
     for msg in pending_msgs:
-        msg_id, _, idle_time, times = msg
-        job_result = await JobResult.filter(msg_id=msg_id).only("job_id").first()
-        if not job_result:
-            continue
-        if int(idle_time / 1000) > timeout * 2:
+        msg_id = msg.get("message_id")
+        idle_time = msg.get("time_since_delivered")
+        if int(idle_time / 10 ** 6) > timeout * 2:
             execute = True
             p.xack(queue, group_name, msg_id)
-            p.xadd(queue, {"job_id": job_result.job_id})
+            job_result = await JobResult.filter(msg_id=msg_id).only("job_id").first()
+            if job_result:
+                p.xadd(queue, {"job_id": job_result.job_id})
     if execute:
         return await p.execute()
 

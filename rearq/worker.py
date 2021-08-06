@@ -254,8 +254,8 @@ class Worker:
                 await self._push_heartbeat()
 
     async def run(self):
-        await self._pre_run()
         try:
+            await self._pre_run()
             await asyncio.gather(self._main(), self._heartbeat())
         except asyncio.CancelledError:
             pass
