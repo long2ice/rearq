@@ -18,6 +18,8 @@ jobs:
           image-name: rearq
   deploy:
     runs-on: ubuntu-latest
+    needs:
+      - build
     steps:
       - name: Deploy
         uses: appleboy/ssh-action@master
