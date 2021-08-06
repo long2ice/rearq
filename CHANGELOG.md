@@ -5,6 +5,7 @@
 ### 0.2.5
 
 - Upgrade `aioredis` to `2.0`.
+- Add `redis_url`.
 
 ### 0.2.4
 

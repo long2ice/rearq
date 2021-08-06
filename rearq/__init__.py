@@ -2,7 +2,7 @@ import asyncio
 import datetime
 import hashlib
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 import aioredis
 import aioredis.sentinel
@@ -25,10 +25,7 @@ class ReArq:
 
     def __init__(
         self,
-        redis_host: Union[str, List[Tuple[str, int]]] = "127.0.0.1",
-        redis_port: int = 6379,
-        redis_password: Optional[str] = None,
-        redis_db=0,
+        redis_url: str = "redis://localhost:6379/0",
         sentinels: Optional[List[str]] = None,
         sentinel_master: str = "master",
         job_retry: int = 3,
@@ -40,10 +37,6 @@ class ReArq:
         keep_job_days: Optional[int] = None,
     ):
         """
-        :param redis_host:
-        :param redis_port:
-        :param redis_password:
-        :param redis_db:
         :param sentinel_master:
         :param job_retry: Default job retry times.
         :param job_retry_after: Default job retry after seconds.
@@ -59,10 +52,7 @@ class ReArq:
         self.expire = expire
         self.sentinels = sentinels
         self.sentinel_master = sentinel_master
-        self.redis_db = redis_db
-        self.redis_port = redis_port
-        self.redis_password = redis_password
-        self.redis_host = redis_host
+        self.redis_url = redis_url
         self.delay_queue_num = delay_queue_num
         self.keep_job_days = keep_job_days
 
@@ -76,8 +66,7 @@ class ReArq:
 
         else:
             redis = aioredis.from_url(
-                f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}",
-                password=self.redis_password,
+                self.redis_url,
                 decode_responses=True,
             )
         self._redis = redis
