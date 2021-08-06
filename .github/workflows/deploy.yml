@@ -1,7 +1,22 @@
 name: deploy
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - 'dev'
+  pull_request:
+    branches:
+      - 'dev'
 jobs:
   build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build and Publish
+        uses: VaultVulp/gp-docker-action@1.1.8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          image-name: rearq
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy
@@ -13,5 +28,5 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             cd /root/rearq/
-            git pull
-            docker-compose up -d --build
+            docker-compose pull
+            docker-compose up -d
