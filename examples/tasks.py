@@ -35,6 +35,6 @@ async def sleep(self: Task, time: float):
     return await asyncio.sleep(time)
 
 
-@rearq.task(cron="* * * * * * *", run_at_start=True)
+@rearq.task(cron="0 * * * *", run_at_start=True)
 async def timer_add(self: Task):
     return "timer"
