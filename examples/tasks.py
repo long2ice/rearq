@@ -19,7 +19,7 @@ async def on_shutdown():
 @rearq.on_startup
 async def on_startup():
     await Tortoise.init(
-        db_url=f"mysql://root:{os.getenv('MYSQL_PASS') or '123456'}@127.0.0.1:3306/rearq",
+        db_url=f"mysql://root:{os.getenv('MYSQL_PASS') or '123456'}@127.0.0.1:3306/rearq?pool_recycle=3600",
         modules={"models": [models]},
     )
     logger.debug("rearq is startup")
