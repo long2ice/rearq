@@ -60,14 +60,7 @@ version = "0.1.9"
 description = "A fast asyncio MySQL driver"
 category = "main"
 optional = true
-python-versions = "^3.7"
-develop = false
-
-[package.source]
-type = "git"
-url = "https://github.com/long2ice/asyncmy.git"
-reference = "dev"
-resolved_reference = "dcbca92705299a0f788754a960ccde260d7025b1"
+python-versions = ">=3.7,<4.0"
 
 [[package]]
 name = "asyncpg"
@@ -784,7 +777,7 @@ postgres = ["asyncpg"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "552be23fd0e884cd248330a43ade672ff95fae41832010187a9777e1dbe2dcca"
+content-hash = "6f0bd6c29a1174053f52f642ff00c2d8e4b9700fd6a2a3f6c7a9aea41cf34222"
 
 [metadata.files]
 aiofiles = [
@@ -807,7 +800,10 @@ async-timeout = [
     {file = "async-timeout-3.0.1.tar.gz", hash = "sha256:0c3c816a028d47f659d6ff5c745cb2acf1f966da1fe5c19c77a70282b25f4c5f"},
     {file = "async_timeout-3.0.1-py3-none-any.whl", hash = "sha256:4291ca197d287d274d0b6cb5d6f8f8f82d434ed288f962539ff18cc9012f9ea3"},
 ]
-asyncmy = []
+asyncmy = [
+    {file = "asyncmy-0.1.9-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:9a07317f96f5506dfd35035db0d14901acf832655f61ddb4f417aa33c6998a7f"},
+    {file = "asyncmy-0.1.9.tar.gz", hash = "sha256:0fb48e77ba7ca77bc1797a95e9bd66167ff850a6b452da87a378108f4777747d"},
+]
 asyncpg = [
     {file = "asyncpg-0.24.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:c4fc0205fe4ddd5aeb3dfdc0f7bafd43411181e1f5650189608e5971cceacff1"},
     {file = "asyncpg-0.24.0-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:a7095890c96ba36f9f668eb552bb020dddb44f8e73e932f8573efc613ee83843"},

@@ -20,6 +20,10 @@ You can try [Demo Online](https://demo-rearq.long2ice.cn) here.
 ![job](./images/job.png)
 ![result](./images/result.png)
 
+## Requirements
+
+- Redis >= 5.0
+
 ## Install
 
 Use MySQL backend:
