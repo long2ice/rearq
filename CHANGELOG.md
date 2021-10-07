@@ -6,6 +6,7 @@
 
 - Upgrade `aioredis` to `2.0`.
 - Add `redis_url`.
+- Support distributed timer.
 
 ### 0.2.4
 

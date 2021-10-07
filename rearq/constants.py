@@ -5,5 +5,6 @@ DEFAULT_QUEUE: str = f"{QUEUE_KEY_PREFIX}default"
 DELAY_QUEUE = f"{QUEUE_KEY_PREFIX}delay"
 WORKER_KEY = "rearq:worker"
 WORKER_KEY_LOCK = "rearq:worker:lock"
+WORKER_KEY_TIMER_LOCK = "rearq:timer:lock"
 WORKER_HEARTBEAT_SECONDS = 10
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

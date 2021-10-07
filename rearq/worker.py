@@ -100,7 +100,7 @@ class Worker:
 
     async def _main(self) -> None:
         logger.add(f"logs/worker-{self.worker_name}.log", rotation="00:00")
-        logger.info(f"Start worker success with queue: {self.queue}")
+        logger.success(f"Start worker success with queue: {self.queue}")
         logger.info(f"Registered tasks: {', '.join(self.register_tasks)}")
         await self.log_redis_info()
         await self.rearq.startup()
@@ -273,6 +273,14 @@ class TimerWorker(Worker):
         super().__init__(rearq)
         self.consumer_name = "timer"
         self.queue = DELAY_QUEUE
+        self._timer_lock = Lock(self._redis, name=constants.WORKER_KEY_TIMER_LOCK)
+
+    async def run(self):
+        logger.info(
+            "Trying to acquire timer lock because only one timer can be startup at same time..."
+        )
+        async with self._timer_lock:
+            await super(TimerWorker, self).run()
 
     async def _run_at_start(self):
         jobs = []
@@ -303,7 +311,7 @@ class TimerWorker(Worker):
         tasks.remove(check_pending_msgs.__name__)
         if self.rearq.keep_job_days:
             tasks.remove(check_keep_job.__name__)
-        logger.info("Start timer success")
+        logger.success("Start timer success")
         logger.add(f"logs/worker-{self.consumer_name}.log", rotation="00:00")
         logger.info(f"Registered timer tasks: {', '.join(tasks)}")
 
