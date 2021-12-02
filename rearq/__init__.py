@@ -87,7 +87,7 @@ class ReArq:
 
     def get_queue_tasks(self, queue: str) -> List[str]:
         tasks = self._queue_task_map.get(queue)
-        return tasks
+        return tasks or []
 
     def create_task(
         self,

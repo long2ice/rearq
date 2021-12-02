@@ -2,6 +2,10 @@
 
 ## 0.2
 
+### 0.2.6
+
+- Fix empty task error.
+
 ### 0.2.5
 
 - Upgrade `aioredis` to `2.0`.
