@@ -26,7 +26,7 @@ loguru = "*"
 jinja2 = "*"
 aiofiles = "*"
 tortoise-orm = "*"
-asyncmy = { version = "0.2.3", optional = true }
+asyncmy = { version = "*", optional = true }
 asyncpg = { version = "*", optional = true }
 
 [tool.poetry.dev-dependencies]
