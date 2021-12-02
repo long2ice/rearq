@@ -1,4 +1,4 @@
-FROM jfloff/alpine-python
+FROM python:3
 ENV CRYPTOGRAPHY_DONT_BUILD_RUST=1
 RUN mkdir -p /rearq
 WORKDIR /rearq
