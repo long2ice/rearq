@@ -56,12 +56,6 @@ class Task:
         """
         if not job_id:
             job_id = uuid4().hex
-        if countdown:
-            defer_ts = to_ms_timestamp(countdown)
-        elif eta:
-            defer_ts = to_ms_timestamp(eta)
-        else:
-            defer_ts = timestamp_ms_now()
         expire_time = None
         expires = expire or self.expire
         if expires:
@@ -89,10 +83,16 @@ class Task:
             await job.save()
             await self.rearq.redis.xadd(self.queue, {"job_id": job_id})
         else:
+            if countdown:
+                defer_ms = to_ms_timestamp(countdown)
+            elif eta:
+                defer_ms = to_ms_timestamp(eta)
+            else:
+                defer_ms = timestamp_ms_now()
             job.status = JobStatus.deferred
             await job.save()
-            await self.rearq.zadd(defer_ts, f"{self.queue}:{job_id}")
-
+            await self.rearq.zadd(defer_ms, f"{self.queue}:{job_id}")
+            await self.rearq.pub_delay(defer_ms)
         return job
 
 

@@ -1,7 +1,6 @@
-import asyncio
 import time
 from datetime import datetime, timedelta
-from typing import Any, AsyncGenerator, Dict, Sequence, Union
+from typing import Any, Dict, Sequence, Union
 
 from tortoise import timezone
 
@@ -35,22 +34,6 @@ def ms_to_datetime(ms: int) -> datetime:
     :return:
     """
     return datetime.fromtimestamp(ms / 1000, timezone.get_default_timezone())
-
-
-async def poll(step: float = 0.5) -> AsyncGenerator[float, None]:
-    """
-    make a async generator
-    :param step:
-    :return:
-    """
-    loop = asyncio.get_event_loop()
-    start = loop.time()
-    while True:
-        before = loop.time()
-        yield before - start
-        after = loop.time()
-        wait = max([0, step - after + before])
-        await asyncio.sleep(wait)
 
 
 def args_to_string(args: Sequence[Any], kwargs: Dict[str, Any]) -> str:

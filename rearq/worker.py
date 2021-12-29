@@ -3,6 +3,7 @@ import json
 import signal
 import socket
 from functools import partial
+from math import inf
 from signal import Signals
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Set
 from uuid import uuid4
@@ -15,11 +16,11 @@ from tortoise import timezone
 from tortoise.expressions import F
 
 from rearq import CronTask, UsageError, constants
-from rearq.constants import DEFAULT_QUEUE, DELAY_QUEUE, QUEUE_KEY_PREFIX
+from rearq.constants import DEFAULT_QUEUE, DELAY_QUEUE, DELAY_QUEUE_CHANNEL, QUEUE_KEY_PREFIX
 from rearq.job import JobStatus
 from rearq.server.models import Job, JobResult
 from rearq.task import check_keep_job, check_pending_msgs
-from rearq.utils import args_to_string, ms_to_datetime, poll, timestamp_ms_now, to_ms_timestamp
+from rearq.utils import args_to_string, ms_to_datetime, timestamp_ms_now, to_ms_timestamp
 
 if TYPE_CHECKING:
     from rearq import ReArq
@@ -274,6 +275,8 @@ class TimerWorker(Worker):
         self.consumer_name = "timer"
         self.queue = DELAY_QUEUE
         self._timer_lock = Lock(self._redis, name=constants.WORKER_KEY_TIMER_LOCK)
+        self.sleep_until: Optional[float] = None
+        self.sleep_task: Optional[asyncio.Task] = None
 
     async def run(self):
         logger.info(
@@ -306,6 +309,44 @@ class TimerWorker(Worker):
             await Job.bulk_create(jobs)
             await p.execute()
 
+    async def _sleep(self):
+        min_next_run = min([task.next_run for task in CronTask.get_cron_tasks().values()])
+        redis = self._redis
+        p = redis.pipeline()
+        for queue in self.rearq.delay_queues:
+            p.zrangebyscore(queue, start=0, num=1, withscores=True, min=-1, max=inf)
+        jobs_id_list = await p.execute()
+        jobs_id_list = list(filter(lambda x: True if x else False, jobs_id_list))
+        if jobs_id_list:
+            _, min_delay = jobs_id_list[0][0]
+        else:
+            min_delay = min_next_run
+        sleep_until = min(min_next_run, min_delay)
+        sleep_ms = sleep_until - timestamp_ms_now()
+        if sleep_ms > 0:
+            self.sleep_until = sleep_until
+            self.sleep_task = asyncio.ensure_future(asyncio.sleep(sleep_ms / 1000))
+            try:
+                await self.sleep_task
+            except asyncio.CancelledError:
+                pass
+
+    async def sub_delay(self):
+        """
+        Subscribe for delay queue changed
+        """
+        channel = self._redis.pubsub()
+        await channel.subscribe(DELAY_QUEUE_CHANNEL)
+        async for msg in channel.listen():
+            msg_type = msg["type"]
+            if msg_type != "message":
+                continue
+            task_ms = float(msg["data"])
+            if self.sleep_until and task_ms < self.sleep_until:  # type:ignore
+                self.sleep_task.cancel()  # type:ignore
+                self.sleep_task = None
+                self.sleep_until = None
+
     async def _main(self) -> None:
         tasks = list(CronTask.get_cron_tasks().keys())
         tasks.remove(check_pending_msgs.__name__)
@@ -318,10 +359,12 @@ class TimerWorker(Worker):
         await self.log_redis_info()
         await self.rearq.startup()
         await self._run_at_start()
-
-        async for _ in poll():
-            await self._poll_iteration()
-            await self.run_cron()
+        asyncio.ensure_future(self.sub_delay())
+        while True:
+            print(self.sleep_until)
+            await self._sleep()
+            await self._run_delay()
+            await self._run_cron()
 
     async def _pre_run(self):
         async with self._lock:
@@ -340,7 +383,7 @@ class TimerWorker(Worker):
             else:
                 await self._push_heartbeat()
 
-    async def run_cron(self):
+    async def _run_cron(self):
         """
         run cron task
         :return:
@@ -348,11 +391,9 @@ class TimerWorker(Worker):
         redis = self._redis
         cron_tasks = CronTask.get_cron_tasks()
         p = redis.pipeline()
-        execute = False
         jobs = []
         for function, task in cron_tasks.items():
             if timestamp_ms_now() >= task.next_run:
-                execute = True
                 job_id = uuid4().hex
                 if task.function == check_pending_msgs:
                     asyncio.ensure_future(
@@ -378,10 +419,9 @@ class TimerWorker(Worker):
                 task.set_next()
         if jobs:
             await Job.bulk_create(jobs)
-        if execute:
             await p.execute()
 
-    async def _poll_iteration(self):
+    async def _run_delay(self):
         """
         get delay task and put to queue
         :return:
@@ -393,13 +433,12 @@ class TimerWorker(Worker):
             p.zrangebyscore(queue, start=0, num=self.queue_read_limit, max=now, min=-1)
         jobs_id_list = await p.execute()
         p = redis.pipeline()
-        execute = False
         for jobs_id_info in jobs_id_list:
             for job_id_info in jobs_id_info:
-                execute = True
                 separate = job_id_info.rindex(":")
                 queue, job_id = job_id_info[:separate], job_id_info[separate + 1 :]  # noqa:
                 p.xadd(queue, {"job_id": job_id})
                 queue = self.rearq.get_delay_queue(job_id_info)
                 p.zrem(queue, job_id_info)
-        execute and await p.execute()
+        if jobs_id_list:
+            await p.execute()

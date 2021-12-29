@@ -3,6 +3,7 @@ import os
 QUEUE_KEY_PREFIX = "rearq:queue:"
 DEFAULT_QUEUE: str = f"{QUEUE_KEY_PREFIX}default"
 DELAY_QUEUE = f"{QUEUE_KEY_PREFIX}delay"
+DELAY_QUEUE_CHANNEL = f"{QUEUE_KEY_PREFIX}channel"
 WORKER_KEY = "rearq:worker"
 WORKER_KEY_LOCK = "rearq:worker:lock"
 WORKER_KEY_TIMER_LOCK = "rearq:timer:lock"

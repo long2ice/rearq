@@ -5,6 +5,7 @@
 ### 0.2.6
 
 - Fix empty task error.
+- Refactor timer algorithm.
 
 ### 0.2.5
 

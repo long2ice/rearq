@@ -9,6 +9,7 @@ import aioredis.sentinel
 from aioredis import Redis
 
 from rearq import constants
+from rearq.constants import DELAY_QUEUE_CHANNEL
 from rearq.exceptions import UsageError
 from rearq.task import CronTask, Task, is_built_task
 
@@ -212,3 +213,6 @@ class ReArq:
     async def zadd(self, score: int, data: str):
         queue = self.get_delay_queue(data)
         return await self.redis.zadd(queue, mapping={data: score})
+
+    async def pub_delay(self, ms: float):
+        return await self.redis.publish(DELAY_QUEUE_CHANNEL, ms)
