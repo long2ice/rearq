@@ -218,12 +218,18 @@ class Worker:
         if is_offline:
             await self._redis.hdel(constants.WORKER_KEY, self.worker_name)
         else:
+            is_timer = isinstance(self, TimerWorker)
             value = {
                 "queue": self.queue,
-                "is_timer": isinstance(self, TimerWorker),
+                "is_timer": is_timer,
                 "ms": timestamp_ms_now(),
             }
             await self._redis.hset(constants.WORKER_KEY, self.worker_name, value=json.dumps(value))
+            if is_timer:
+                # To prevent the unpredictable shutdown
+                await self._redis.expire(
+                    constants.WORKER_KEY_TIMER_LOCK, constants.WORKER_HEARTBEAT_SECONDS + 2
+                )
 
     async def _heartbeat(self):
         """
@@ -361,7 +367,6 @@ class TimerWorker(Worker):
         await self._run_at_start()
         asyncio.ensure_future(self.sub_delay())
         while True:
-            print(self.sleep_until)
             await self._sleep()
             await self._run_delay()
             await self._run_cron()
