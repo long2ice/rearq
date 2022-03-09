@@ -118,7 +118,7 @@ async def check_pending_msgs(self: Task, queue: str, group_name: str, timeout: i
     for msg in pending_msgs:
         msg_id = msg.get("message_id")
         idle_time = msg.get("time_since_delivered")
-        if int(idle_time / 10 ** 6) > timeout * 2:
+        if int(idle_time / 10**6) > timeout * 2:
             execute = True
             p.xack(queue, group_name, msg_id)
             job_result = await JobResult.filter(msg_id=msg_id).only("job_id").first()
