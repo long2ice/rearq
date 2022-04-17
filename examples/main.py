@@ -4,7 +4,6 @@ from examples.tasks import add, rearq
 
 
 async def main():
-    await rearq.init()
     await rearq.startup()
     await add.delay(args=[1, 1], countdown=5)
 

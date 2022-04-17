@@ -56,8 +56,9 @@ class ReArq:
         self.redis_url = redis_url
         self.delay_queue_num = delay_queue_num
         self.keep_job_days = keep_job_days
+        self._init()
 
-    async def init(self):
+    def _init(self):
         if self._redis:
             return
 

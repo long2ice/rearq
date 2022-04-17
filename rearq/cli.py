@@ -58,7 +58,6 @@ async def cli(ctx: Context, rearq: str, verbose):
 @coro
 async def worker(ctx: Context, queue: str, group_name: str, consumer_name: str):
     rearq = ctx.obj["rearq"]
-    await rearq.init()
     w = Worker(rearq, queue=queue, group_name=group_name, consumer_name=consumer_name)
     await w.run()
 
@@ -68,7 +67,6 @@ async def worker(ctx: Context, queue: str, group_name: str, consumer_name: str):
 @coro
 async def timer(ctx: Context):
     rearq = ctx.obj["rearq"]
-    await rearq.init()
     w = TimerWorker(rearq)
     await w.run()
 
