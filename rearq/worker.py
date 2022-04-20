@@ -62,9 +62,6 @@ class Worker:
         self.job_retry_after = rearq.job_retry_after
         self._add_signal_handler(signal.SIGINT, self.handle_sig)
         self._add_signal_handler(signal.SIGTERM, self.handle_sig)
-        self.rearq.create_task(True, check_pending_msgs, queue, "* * * * *")
-        if rearq.keep_job_days:
-            self.rearq.create_task(True, check_keep_job, queue, "0 4 * * *")
 
     def _add_signal_handler(self, signum: Signals, handler: Callable[[Signals], None]) -> None:
         self.loop.add_signal_handler(signum, partial(handler, signum))
@@ -223,6 +220,8 @@ class Worker:
                 "queue": self.queue,
                 "is_timer": is_timer,
                 "ms": timestamp_ms_now(),
+                "group": self.group_name,
+                "consumer": self.consumer_name,
             }
             await self._redis.hset(constants.WORKER_KEY, self.worker_name, value=json.dumps(value))
             if is_timer:
@@ -283,6 +282,9 @@ class TimerWorker(Worker):
         self._timer_lock = Lock(self._redis, name=constants.WORKER_KEY_TIMER_LOCK)
         self.sleep_until: Optional[float] = None
         self.sleep_task: Optional[asyncio.Task] = None
+        self.rearq.create_task(True, check_pending_msgs, self.queue, "* * * * *")
+        if rearq.keep_job_days:
+            self.rearq.create_task(True, check_keep_job, self.queue, "0 4 * * *")
 
     async def run(self):
         logger.info(
@@ -401,9 +403,7 @@ class TimerWorker(Worker):
             if timestamp_ms_now() >= task.next_run:
                 job_id = uuid4().hex
                 if task.function == check_pending_msgs:
-                    asyncio.ensure_future(
-                        check_pending_msgs(task, task.queue, self.group_name, self.job_timeout)
-                    )
+                    asyncio.ensure_future(check_pending_msgs(task, self.job_timeout))
                 elif task.function == check_keep_job:
                     asyncio.ensure_future(check_keep_job(task))
                 else:

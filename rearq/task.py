@@ -1,4 +1,5 @@
 import datetime
+import json
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 from uuid import uuid4
 
@@ -6,6 +7,7 @@ from crontab import CronTab
 from loguru import logger
 from tortoise import timezone
 
+from rearq.constants import WORKER_KEY
 from rearq.job import JobStatus
 from rearq.server.models import Job, JobResult
 from rearq.utils import ms_to_datetime, timestamp_ms_now, to_ms_timestamp
@@ -96,34 +98,45 @@ class Task:
         return job
 
 
-async def check_pending_msgs(self: Task, queue: str, group_name: str, timeout: int):
+async def check_pending_msgs(self: Task, timeout: int):
     """
     check pending messages
     :return:
     """
     redis = self.rearq.redis
-    pending = await redis.xpending(self.queue, group_name)
-    count = pending.get("pending")
-    if not count:
-        return
-    pending_msgs = await redis.xpending_range(
-        self.queue,
-        group_name,
-        min=pending.get("min"),
-        max=pending.get("max"),
-        count=count,
-    )
+    queues = {}
+    workers = await redis.hgetall(WORKER_KEY)
+    for worker_name, worker_info in workers.items():
+        worker_info = json.loads(worker_info)
+        if worker_info.get("is_timer"):
+            continue
+        queue = worker_info.get("queue")
+        group = worker_info.get("group")
+        queues.setdefault(queue, set()).add(group)
     p = redis.pipeline()
     execute = False
-    for msg in pending_msgs:
-        msg_id = msg.get("message_id")
-        idle_time = msg.get("time_since_delivered")
-        if int(idle_time / 10**6) > timeout * 2:
-            execute = True
-            p.xack(queue, group_name, msg_id)
-            job_result = await JobResult.filter(msg_id=msg_id).only("job_id").first()
-            if job_result:
-                p.xadd(queue, {"job_id": job_result.job_id})
+    for queue, groups in queues.items():
+        for group in groups:
+            pending = await redis.xpending(queue, group)
+            count = pending.get("pending")
+            if not count:
+                continue
+            pending_msgs = await redis.xpending_range(
+                queue,
+                group,
+                min=pending.get("min"),
+                max=pending.get("max"),
+                count=count,
+            )
+            for msg in pending_msgs:
+                msg_id = msg.get("message_id")
+                idle_time = msg.get("time_since_delivered")
+                if int(idle_time / 10**6) > timeout * 2:
+                    execute = True
+                    p.xack(queue, group, msg_id)
+                    job_result = await JobResult.filter(msg_id=msg_id).only("job_id").first()
+                    if job_result:
+                        p.xadd(queue, {"job_id": job_result.job_id})
     if execute:
         return await p.execute()
 
