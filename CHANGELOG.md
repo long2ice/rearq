@@ -5,6 +5,7 @@
 ### 0.2.7
 
 - Add task enable/disable.
+- Add arg/kwarg shortcut arguments.
 
 ### 0.2.6
 

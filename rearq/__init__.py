@@ -210,7 +210,7 @@ class ReArq:
         self._redis = None
 
     def get_delay_queue(self, data: str):
-        num = int(hashlib.md5(data.encode()).hexdigest(), 16) % self.delay_queue_num  # nosec:B303
+        num = int(hashlib.sha256(data.encode()).hexdigest(), 16) % self.delay_queue_num
         return f"{constants.DELAY_QUEUE}:{num}"
 
     @property
