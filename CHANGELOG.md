@@ -6,6 +6,7 @@
 
 - Add task enable/disable.
 - Add arg/kwarg shortcut arguments.
+- Add log_dir param in rearq.
 
 ### 0.2.6
 

@@ -97,7 +97,7 @@ class Worker:
         )
 
     async def _main(self) -> None:
-        logger.add(f"logs/worker-{self.worker_name}.log", rotation="00:00")
+        logger.add(f"{self.rearq.logs_dir}/worker-{self.worker_name}.log", rotation="00:00")
         logger.success(f"Start worker success with queue: {self.queue}")
         logger.info(f"Registered tasks: {', '.join(self.register_tasks)}")
         await self.log_redis_info()
@@ -366,7 +366,7 @@ class TimerWorker(Worker):
         if self.rearq.keep_job_days:
             tasks.remove(check_keep_job.__name__)
         logger.success("Start timer success")
-        logger.add(f"logs/worker-{self.consumer_name}.log", rotation="00:00")
+        logger.add(f"{self.rearq.logs_dir}/worker-{self.worker_name}.log", rotation="00:00")
         logger.info(f"Registered timer tasks: {', '.join(tasks)}")
 
         await self.log_redis_info()

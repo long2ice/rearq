@@ -55,8 +55,8 @@ async def delete_worker(name: str, rearq: ReArq = Depends(get_rearq)):
 
 
 @router.get("/log")
-async def logs(name: str):
-    log_file = os.path.join(constants.BASE_DIR, "logs", f"worker-{name}.log")
+async def logs(name: str, rearq: ReArq = Depends(get_rearq)):
+    log_file = os.path.join(rearq.logs_dir, f"worker-{name}.log")
     async with aiofiles.open(log_file, mode="r") as f:
         content = await f.read()
     return content

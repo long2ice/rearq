@@ -30,7 +30,7 @@ asyncmy = { version = "*", optional = true }
 asyncpg = { version = "*", optional = true }
 
 [tool.poetry.dev-dependencies]
-flake8 = "*"
+pyproject-flake8 = "*"
 isort = "*"
 black = "*"
 pytest = "*"
@@ -49,3 +49,17 @@ build-backend = "poetry.masonry.api"
 
 [tool.poetry.scripts]
 rearq = "rearq.cli:main"
+
+[tool.black]
+line-length = 100
+target-version = ['py36', 'py37', 'py38', 'py39']
+
+[tool.pytest.ini_options]
+asyncio_mode = 'auto'
+
+[tool.mypy]
+pretty = true
+ignore_missing_imports = true
+
+[tool.flake8]
+ignore = 'E501,W503,E203'

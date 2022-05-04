@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import hashlib
+import os
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Set, Union
 
@@ -36,6 +37,7 @@ class ReArq:
         expire: Optional[Union[float, datetime.datetime]] = None,
         delay_queue_num: int = 1,
         keep_job_days: Optional[int] = None,
+        logs_dir: Optional[str] = os.path.join(constants.BASE_DIR, "logs"),
     ):
         """
         :param sentinel_master:
@@ -56,6 +58,7 @@ class ReArq:
         self.redis_url = redis_url
         self.delay_queue_num = delay_queue_num
         self.keep_job_days = keep_job_days
+        self.logs_dir = logs_dir
         self._init()
 
     def _init(self):
