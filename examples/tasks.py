@@ -4,7 +4,7 @@ import os
 from loguru import logger
 from tortoise import Tortoise
 
-from rearq import ReArq, Task
+from rearq import ReArq
 from rearq.server import models
 
 rearq = ReArq(delay_queue_num=2, keep_job_days=7)
@@ -26,15 +26,15 @@ async def on_startup():
 
 
 @rearq.task()
-async def add(self: Task, a, b):
+async def add(a, b):
     return a + b
 
 
 @rearq.task()
-async def sleep(self: Task, time: float):
+async def sleep(time: float):
     return await asyncio.sleep(time)
 
 
 @rearq.task(cron="0 * * * *", run_at_start=True)
-async def timer_add(self: Task):
+async def timer_add():
     return "timer"

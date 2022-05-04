@@ -6,6 +6,7 @@
             <th scope="col">Task</th>
             <th scope="col">Queue</th>
             <th scope="col">LastTime</th>
+            <th scope="col">Status</th>
             <th scope="col">Actions</th>
         </tr>
         </thead>
@@ -19,6 +20,7 @@
                 {% else %}
                     Never Run
                 {% endif %} </td>
+                <td><span class="badge {% if task.status == 'enabled' %}bg-success{% else %}bg-warning{% endif %}">{{ task.status }}</span></td>
                 <td>{% include "widgets/task_actions.html" %}</td>
             </tr>
         {% endfor %}
@@ -35,6 +37,7 @@
             <th scope="col">Crontab</th>
             <th scope="col">LastTime</th>
             <th scope="col">NextTime</th>
+            <th scope="col">Status</th>
             <th scope="col">Actions</th>
         </tr>
         </thead>
@@ -50,77 +53,10 @@
                     Never Run
                 {% endif %} </td>
                 <td class="time-format">{{ task.next_time }}</td>
+                <td><span class="badge {% if task.status == 'enabled' %}bg-success{% else %}bg-warning{% endif %}">{{ task.status }}</span></td>
                 <td>{% include "widgets/task_actions.html" %}</td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
-{% endblock %}
-{% block body_end %}
-    <script>
-        function run_task(task_name) {
-            let data = {
-                task: task_name,
-            }
-            let args = $('#args-' + task_name).val()
-            if (args !== "") {
-                args = JSON.parse(args)
-                data.args = args;
-            }
-            let kwargs = $('#kwargs-' + task_name).val()
-            if (kwargs !== "") {
-                kwargs = JSON.parse(kwargs);
-                data.kwargs = kwargs;
-            }
-            let job_id = $('#job-id-' + task_name).val()
-            if (job_id !== "") {
-                data.job_id = job_id;
-            }
-            let countdown = $('#countdown-' + task_name).val()
-            if (countdown !== "") {
-                data.countdown = countdown;
-            }
-            let eta = $('#eta-' + task_name).val()
-            if (eta !== "") {
-                data.eta = eta;
-            }
-            let expires = $('#expires-' + task_name).val()
-            if (expires !== "") {
-                data.expires = expires;
-            }
-            let job_retry = $('#job-retry-' + task_name).val()
-            if (job_retry !== "") {
-                data.job_retry = job_retry;
-            }
-            $.ajax({
-                url: '/job',
-                method: 'POST',
-                data: JSON.stringify(data),
-                contentType: 'application/json',
-                dataType: 'json',
-                success: res => {
-                    swal({
-                        title: 'Run task success',
-                        icon: "success",
-                        content: {
-                            element: "a",
-                            attributes: {
-                                href: "/job?job_id=" + res.job_id,
-                                text: "JobID: " + res.job_id,
-                            },
-                        }
-                    });
-                },
-                error: res => {
-                    swal({
-                        title: res.responseJSON.msg,
-                        icon: "error",
-                    });
-                },
-                complete: () => {
-                    $('#run-' + task_name).modal('toggle');
-                }
-            })
-        }
-    </script>
 {% endblock %}

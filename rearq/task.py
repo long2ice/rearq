@@ -7,9 +7,11 @@ from crontab import CronTab
 from loguru import logger
 from tortoise import timezone
 
+from rearq import constants
 from rearq.constants import WORKER_KEY
 from rearq.job import JobStatus
 from rearq.server.models import Job, JobResult
+from rearq.server.schemas import TaskStatus
 from rearq.utils import ms_to_datetime, timestamp_ms_now, to_ms_timestamp
 
 
@@ -17,6 +19,7 @@ class Task:
     def __init__(
         self,
         bind: bool,
+        name: str,
         function: Callable,
         queue: str,
         rearq,
@@ -32,6 +35,24 @@ class Task:
         self.function = function
         self.bind = bind
         self.expire = expire
+        self.name = name
+
+    @property
+    def is_builtin(self):
+        return self.name in [check_pending_msgs.__name__, check_keep_job.__name__]
+
+    async def enable(self):
+        await self.rearq.redis.hset(constants.TASK_KEY, self.name, TaskStatus.enabled)
+
+    async def disable(self):
+        await self.rearq.redis.hset(constants.TASK_KEY, self.name, TaskStatus.disabled)
+
+    async def is_enabled(self):
+        status = await self.rearq.redis.hget(constants.TASK_KEY, self.name)
+        return status == TaskStatus.enabled or status is None
+
+    async def is_disabled(self):
+        return not await self.is_enabled()
 
     async def delay(
         self,
@@ -146,7 +167,8 @@ async def check_keep_job(self: Task):
     keep_job_days = rearq.keep_job_days
     time = timezone.now() - datetime.timedelta(days=keep_job_days)
     return await Job.filter(
-        status__in=[JobStatus.failed, JobStatus.success, JobStatus.expired], enqueue_time__lt=time
+        status__in=[JobStatus.failed, JobStatus.success, JobStatus.expired],
+        enqueue_time__lt=time,
     ).delete()
 
 
@@ -157,6 +179,7 @@ class CronTask(Task):
     def __init__(
         self,
         bind: bool,
+        name: str,
         function: Callable,
         queue: str,
         rearq,
@@ -166,7 +189,7 @@ class CronTask(Task):
         expire: Optional[Union[float, datetime.datetime]] = None,
         run_at_start: Optional[bool] = False,
     ):
-        super().__init__(bind, function, queue, rearq, job_retry, job_retry_after, expire)
+        super().__init__(bind, name, function, queue, rearq, job_retry, job_retry_after, expire)
         self.crontab = CronTab(cron)
         self.cron = cron
         self.run_at_start = run_at_start
@@ -182,7 +205,3 @@ class CronTask(Task):
     @classmethod
     def get_cron_tasks(cls):
         return cls._cron_tasks
-
-
-def is_built_task(task: str):
-    return task in [check_pending_msgs.__name__, check_keep_job.__name__]

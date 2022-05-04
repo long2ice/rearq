@@ -2,6 +2,10 @@
 
 ## 0.2
 
+### 0.2.7
+
+- Add task enable/disable.
+
 ### 0.2.6
 
 - Fix empty task error.

@@ -1,8 +1,14 @@
-<button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#run-{{ task.name }}">
+<button class="btn btn-primary btn-sm" {% if task.status == 'disabled' %}
+        disabled
+{% endif %}  data-bs-toggle="modal" data-bs-target="#run-{{ task.name }}">
     Run
 </button>
 <a class="btn btn-secondary btn-sm" href="/result?task={{ task.name }}">Job</a>
 <a class="btn btn-dark btn-sm" href="/job?task={{ task.name }}">Result</a>
+<button onclick="set_task('{{ task.name }}','{{ task.status }}')"
+        class="btn btn-sm {% if task.status == "enabled" %}btn-warning{% else %}btn-success{% endif %}">
+    {% if task.status == "enabled" %}
+        Disable{% else %}Enable{% endif %}</button>
 <div class="modal fade" id="run-{{ task.name }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -82,3 +88,93 @@
         </div>
     </div>
 </div>
+{% block body_end %}
+    <script>
+        function run_task(task_name) {
+            let data = {
+                task: task_name,
+            }
+            let args = $('#args-' + task_name).val()
+            if (args !== "") {
+                args = JSON.parse(args)
+                data.args = args;
+            }
+            let kwargs = $('#kwargs-' + task_name).val()
+            if (kwargs !== "") {
+                kwargs = JSON.parse(kwargs);
+                data.kwargs = kwargs;
+            }
+            let job_id = $('#job-id-' + task_name).val()
+            if (job_id !== "") {
+                data.job_id = job_id;
+            }
+            let countdown = $('#countdown-' + task_name).val()
+            if (countdown !== "") {
+                data.countdown = countdown;
+            }
+            let eta = $('#eta-' + task_name).val()
+            if (eta !== "") {
+                data.eta = eta;
+            }
+            let expires = $('#expires-' + task_name).val()
+            if (expires !== "") {
+                data.expires = expires;
+            }
+            let job_retry = $('#job-retry-' + task_name).val()
+            if (job_retry !== "") {
+                data.job_retry = job_retry;
+            }
+            $.ajax({
+                url: '/job',
+                method: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                dataType: 'json',
+                success: res => {
+                    swal({
+                        title: 'Run task success',
+                        icon: "success",
+                        content: {
+                            element: "a",
+                            attributes: {
+                                href: "/job?job_id=" + res.job_id,
+                                text: "JobID: " + res.job_id,
+                            },
+                        }
+                    });
+                },
+                error: res => {
+                    swal({
+                        title: res.responseJSON.msg,
+                        icon: "error",
+                    });
+                },
+                complete: () => {
+                    $('#run-' + task_name).modal('toggle');
+                }
+            })
+        }
+
+        function set_task(task_name, status) {
+            let set_status = status === 'disabled' ? 'enabled' : 'disabled';
+            $.ajax({
+                url: '/task/' + task_name,
+                method: 'PUT',
+                data: JSON.stringify({
+                    status: set_status,
+                }),
+                contentType: 'application/json',
+                dataType: 'json',
+                success: res => {
+                    location.reload();
+                },
+                error: res => {
+                    swal({
+                        title: res.responseJSON.msg,
+                        icon: "error",
+                    });
+                }
+            })
+        }
+    </script>
+{% endblock %}

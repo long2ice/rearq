@@ -31,7 +31,10 @@ async def get_workers(request: Request, rearq: ReArq = Depends(get_rearq)):
                 status="job__status",
             )
         )
-        item = {"name": worker_name, "job_stat": {job["status"]: job["count"] for job in job_stat}}
+        item = {
+            "name": worker_name,
+            "job_stat": {job["status"]: job["count"] for job in job_stat},
+        }
         item.update(json.loads(value))
         time = ms_to_datetime(item["ms"])
         item["time"] = time

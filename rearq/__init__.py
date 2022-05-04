@@ -11,7 +11,7 @@ from aioredis import Redis
 from rearq import constants
 from rearq.constants import DELAY_QUEUE_CHANNEL
 from rearq.exceptions import UsageError
-from rearq.task import CronTask, Task, is_built_task
+from rearq.task import CronTask, Task
 
 Serializer = Callable[[Dict[str, Any]], bytes]
 Deserializer = Callable[[bytes], Dict[str, Any]]
@@ -93,8 +93,8 @@ class ReArq:
 
     def create_task(
         self,
-        bind: bool,
         func: Callable,
+        bind: bool = False,
         queue: Optional[str] = None,
         cron: Optional[str] = None,
         name: Optional[str] = None,
@@ -107,15 +107,12 @@ class ReArq:
         if not callable(func):
             raise UsageError("Task must be Callable!")
 
-        function = name or func.__name__
-        if function in (self._queue_task_map.get(queue) or []):
+        task_name = name or func.__name__
+        if task_name in (self._queue_task_map.get(queue) or []):
             raise UsageError("Task name must be unique!")
-
-        if not is_built_task(function):
-            self._queue_task_map.setdefault(queue, []).append(function)
-
         defaults = dict(
             function=func,
+            name=task_name,
             queue=constants.QUEUE_KEY_PREFIX + queue if queue else constants.DEFAULT_QUEUE,
             rearq=self,
             job_retry=job_retry or self.job_retry,
@@ -125,15 +122,17 @@ class ReArq:
         )
         if cron:
             t = CronTask(**defaults, cron=cron, run_at_start=run_at_start)
-            CronTask.add_cron_task(function, t)
+            CronTask.add_cron_task(task_name, t)
         else:
             t = Task(**defaults)
-        self._task_map[function] = t
+        if not t.is_builtin:
+            self._queue_task_map.setdefault(queue, []).append(task_name)
+        self._task_map[task_name] = t
         return t
 
     def task(
         self,
-        bind: bool = True,
+        bind: bool = False,
         queue: Optional[str] = None,
         cron: Optional[str] = None,
         name: Optional[str] = None,
@@ -159,7 +158,15 @@ class ReArq:
 
         def wrapper(func: Callable):
             return self.create_task(
-                bind, func, queue, cron, name, job_retry, job_retry_after, expire, run_at_start
+                func,
+                bind,
+                queue,
+                cron,
+                name,
+                job_retry,
+                job_retry_after,
+                expire,
+                run_at_start,
             )
 
         return wrapper

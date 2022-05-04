@@ -160,6 +160,9 @@ class Worker:
             job_result.result = "task not found"
             await job_result.save()
             return job_result
+        elif await task.is_disabled():
+            logger.warning(f"task {job.task} is disabled, ignore")
+            return
         ref = f"{job_id}:{job.task}"
 
         start_ms = timestamp_ms_now()
@@ -227,7 +230,8 @@ class Worker:
             if is_timer:
                 # To prevent the unpredictable shutdown
                 await self._redis.expire(
-                    constants.WORKER_KEY_TIMER_LOCK, constants.WORKER_HEARTBEAT_SECONDS + 2
+                    constants.WORKER_KEY_TIMER_LOCK,
+                    constants.WORKER_HEARTBEAT_SECONDS + 2,
                 )
 
     async def _heartbeat(self):
@@ -252,7 +256,8 @@ class Worker:
                 length = len(
                     list(
                         filter(
-                            lambda item: not json.loads(item[1]).get("is_timer"), workers.items()
+                            lambda item: not json.loads(item[1]).get("is_timer"),
+                            workers.items(),
                         )
                     )
                 )
@@ -282,9 +287,9 @@ class TimerWorker(Worker):
         self._timer_lock = Lock(self._redis, name=constants.WORKER_KEY_TIMER_LOCK)
         self.sleep_until: Optional[float] = None
         self.sleep_task: Optional[asyncio.Task] = None
-        self.rearq.create_task(True, check_pending_msgs, self.queue, "* * * * *")
+        self.rearq.create_task(check_pending_msgs, True, self.queue, "* * * * *")
         if rearq.keep_job_days:
-            self.rearq.create_task(True, check_keep_job, self.queue, "0 4 * * *")
+            self.rearq.create_task(check_keep_job, True, self.queue, "0 4 * * *")
 
     async def run(self):
         logger.info(
@@ -297,7 +302,7 @@ class TimerWorker(Worker):
         jobs = []
         p = self._redis.pipeline()
         for function, task in CronTask.get_cron_tasks().items():
-            if task.run_at_start:
+            if task.run_at_start and await task.is_enabled():
                 logger.info(f"{function}() <- run at start")
                 job_id = uuid4().hex
                 jobs.append(
@@ -400,6 +405,8 @@ class TimerWorker(Worker):
         p = redis.pipeline()
         jobs = []
         for function, task in cron_tasks.items():
+            if await task.is_disabled():
+                continue
             if timestamp_ms_now() >= task.next_run:
                 job_id = uuid4().hex
                 if task.function == check_pending_msgs:
@@ -441,7 +448,10 @@ class TimerWorker(Worker):
         for jobs_id_info in jobs_id_list:
             for job_id_info in jobs_id_info:
                 separate = job_id_info.rindex(":")
-                queue, job_id = job_id_info[:separate], job_id_info[separate + 1 :]  # noqa:
+                queue, job_id = (
+                    job_id_info[:separate],
+                    job_id_info[separate + 1 :],
+                )  # noqa:
                 p.xadd(queue, {"job_id": job_id})
                 queue = self.rearq.get_delay_queue(job_id_info)
                 p.zrem(queue, job_id_info)

@@ -1,4 +1,5 @@
 import datetime
+from enum import Enum
 from typing import Any, List, Optional, Union
 
 from pydantic import BaseModel
@@ -21,3 +22,15 @@ class UpdateJobIn(BaseModel):
     expire_time: Optional[datetime.datetime]
     job_retry: Optional[int]
     job_retry_after: Optional[int]
+
+
+class TaskStatus(str, Enum):
+    enabled = "enabled"
+    disabled = "disabled"
+
+    def __str__(self):
+        return self.value
+
+
+class UpdateTask(BaseModel):
+    status: TaskStatus

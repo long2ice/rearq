@@ -10,7 +10,7 @@ from rearq.server import templates
 from rearq.server.depends import get_pager, get_rearq
 from rearq.server.models import Job, JobResult
 from rearq.server.responses import JobListOut, JobOut
-from rearq.server.schemas import AddJobIn, UpdateJobIn
+from rearq.server.schemas import AddJobIn, TaskStatus, UpdateJobIn
 
 router = APIRouter()
 
@@ -78,6 +78,8 @@ async def delete_job(ids: str):
 @router.post("", response_model=JobOut)
 async def add_job(add_job_in: AddJobIn, rearq: ReArq = Depends(get_rearq)):
     task = rearq.task_map.get(add_job_in.task)
+    if await rearq.redis.hget(constants.TASK_KEY, add_job_in.task) == TaskStatus.disabled:
+        raise HTTPException(status_code=HTTP_409_CONFLICT, detail="Task is disabled")
     if not task:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="No such task")
     job = await task.delay(**add_job_in.dict(exclude={"task"}))

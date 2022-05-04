@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from starlette.requests import Request
+from starlette.status import HTTP_409_CONFLICT
 
 from rearq import CronTask, ReArq
 from rearq.server import templates
 from rearq.server.depends import get_rearq
 from rearq.server.models import JobResult
+from rearq.server.schemas import TaskStatus, UpdateTask
 from rearq.utils import ms_to_datetime
 
 router = APIRouter()
@@ -19,6 +21,7 @@ async def get_tasks(request: Request, rearq: ReArq = Depends(get_rearq)):
         item = {
             "name": task_name,
             "queue": task.queue,
+            "status": TaskStatus.enabled if await task.is_enabled() else TaskStatus.disabled,
         }
         job_result = await JobResult.filter(job__task=task_name).order_by("-id").first()
         if job_result:
@@ -34,5 +37,23 @@ async def get_tasks(request: Request, rearq: ReArq = Depends(get_rearq)):
             tasks.append(item)
     return templates.TemplateResponse(
         "task.html",
-        {"request": request, "page_title": "task", "tasks": tasks, "cron_tasks": cron_tasks},
+        {
+            "request": request,
+            "page_title": "task",
+            "tasks": tasks,
+            "cron_tasks": cron_tasks,
+        },
     )
+
+
+@router.put("/{task_name}")
+async def update_task(task_name: str, ut: UpdateTask, rearq: ReArq = Depends(get_rearq)):
+    task_map = rearq.task_map
+    task = task_map.get(task_name)
+    if task:
+        if task.is_builtin:
+            raise HTTPException(status_code=HTTP_409_CONFLICT, detail="Can't update builtin task")
+        if ut.status == TaskStatus.enabled:
+            await task.enable()
+        else:
+            await task.disable()
