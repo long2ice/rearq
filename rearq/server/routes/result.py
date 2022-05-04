@@ -1,11 +1,12 @@
 from typing import Optional
 
+from aioredis import Redis
 from fastapi import APIRouter, Depends
 from starlette.requests import Request
 
 from rearq import ReArq, constants
 from rearq.server import templates
-from rearq.server.depends import get_pager, get_rearq
+from rearq.server.depends import get_pager, get_rearq, get_redis
 from rearq.server.models import JobResult
 from rearq.server.responses import JobResultListOut
 
@@ -47,9 +48,10 @@ async def delete_result(ids: str):
 @router.get("", include_in_schema=False)
 async def result(
     request: Request,
+    redis: Redis = Depends(get_redis),
     rearq: ReArq = Depends(get_rearq),
 ):
-    workers_info = await rearq.redis.hgetall(constants.WORKER_KEY)
+    workers_info = await redis.hgetall(constants.WORKER_KEY)
 
     return templates.TemplateResponse(
         "result.html",

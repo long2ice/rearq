@@ -2,6 +2,7 @@ import json
 import os
 
 import aiofiles
+from aioredis import Redis
 from fastapi import APIRouter, Depends
 from starlette.requests import Request
 from tortoise import timezone
@@ -9,7 +10,7 @@ from tortoise.functions import Count
 
 from rearq import ReArq, constants
 from rearq.server import templates
-from rearq.server.depends import get_rearq
+from rearq.server.depends import get_rearq, get_redis
 from rearq.server.models import JobResult
 from rearq.utils import ms_to_datetime
 
@@ -17,8 +18,7 @@ router = APIRouter()
 
 
 @router.get("", include_in_schema=False)
-async def get_workers(request: Request, rearq: ReArq = Depends(get_rearq)):
-    redis = rearq.redis
+async def get_workers(request: Request, redis: Redis = Depends(get_redis)):
     workers_info = await redis.hgetall(constants.WORKER_KEY)
     workers = []
     for worker_name, value in workers_info.items():
@@ -49,8 +49,7 @@ async def get_workers(request: Request, rearq: ReArq = Depends(get_rearq)):
 
 
 @router.delete("")
-async def delete_worker(name: str, rearq: ReArq = Depends(get_rearq)):
-    redis = rearq.redis
+async def delete_worker(name: str, redis: Redis = Depends(get_redis)):
     return await redis.hdel(constants.WORKER_KEY, name)
 
 

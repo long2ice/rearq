@@ -88,7 +88,6 @@ class Worker:
         p.info()
         p.dbsize()
         info, key_count = await p.execute()
-
         logger.info(
             f'redis_version={info["redis_version"]} '
             f'mem_usage={info["used_memory_human"]} '

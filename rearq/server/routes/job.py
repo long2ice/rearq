@@ -1,5 +1,6 @@
 from typing import Optional
 
+from aioredis import Redis
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.requests import Request
 from starlette.status import HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
@@ -7,7 +8,7 @@ from starlette.status import HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
 from rearq import ReArq, constants
 from rearq.enums import JobStatus
 from rearq.server import templates
-from rearq.server.depends import get_pager, get_rearq
+from rearq.server.depends import get_pager, get_rearq, get_redis
 from rearq.server.models import Job, JobResult
 from rearq.server.responses import JobListOut, JobOut
 from rearq.server.schemas import AddJobIn, TaskStatus, UpdateJobIn
@@ -16,8 +17,10 @@ router = APIRouter()
 
 
 @router.get("", include_in_schema=False)
-async def job_page(request: Request, rearq=Depends(get_rearq)):
-    workers_info = await rearq.redis.hgetall(constants.WORKER_KEY)
+async def job_page(
+    request: Request, redis: Redis = Depends(get_redis), rearq: ReArq = Depends(get_rearq)
+):
+    workers_info = await redis.hgetall(constants.WORKER_KEY)
     return templates.TemplateResponse(
         "job.html",
         {

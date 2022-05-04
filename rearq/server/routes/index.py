@@ -5,7 +5,7 @@ from tortoise.functions import Count, Function
 
 from rearq import ReArq, constants
 from rearq.server import templates
-from rearq.server.depends import get_rearq
+from rearq.server.depends import get_rearq, get_redis
 from rearq.server.models import Job, JobResult
 
 router = APIRouter()
@@ -16,10 +16,10 @@ class ToDate(Function):
 
 
 @router.get("/", include_in_schema=False)
-async def index(request: Request, rearq: ReArq = Depends(get_rearq)):
+async def index(request: Request, rearq: ReArq = Depends(get_rearq), redis=Depends(get_redis)):
     task_map = rearq.task_map
     task_num = len(task_map)
-    workers_info = await rearq.redis.hgetall(constants.WORKER_KEY)
+    workers_info = await redis.hgetall(constants.WORKER_KEY)
     worker_num = len(workers_info)
     run_times = await JobResult.all().count()
     result = (
