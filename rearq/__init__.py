@@ -37,7 +37,7 @@ class ReArq:
         expire: Optional[Union[float, datetime.datetime]] = None,
         delay_queue_num: int = 1,
         keep_job_days: Optional[int] = None,
-        logs_dir: Optional[str] = os.path.join(constants.BASE_DIR, "logs"),
+        logs_dir: Optional[str] = os.path.join(constants.WORKER_DIR, "logs"),
     ):
         """
         :param sentinel_master:
