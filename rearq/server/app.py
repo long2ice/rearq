@@ -11,7 +11,7 @@ from .routes import router
 app = FastAPI(title="API docs of ReArq")
 app.mount(
     "/static",
-    StaticFiles(directory=os.path.join(constants.BASE_DIR, "rearq", "server", "static")),
+    StaticFiles(directory=os.path.join(constants.STATIC_DIR, "rearq", "server", "static")),
     name="static",
 )
 app.include_router(router)

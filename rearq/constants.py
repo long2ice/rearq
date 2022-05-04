@@ -9,4 +9,5 @@ WORKER_KEY = "rearq:worker"
 WORKER_KEY_LOCK = "rearq:worker:lock"
 WORKER_KEY_TIMER_LOCK = "rearq:timer:lock"
 WORKER_HEARTBEAT_SECONDS = 10
+STATIC_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = os.path.dirname(os.getcwd())
