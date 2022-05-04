@@ -12,3 +12,11 @@ class JobStatus(str, Enum):
     success = "success"
     failed = "failed"
     expired = "expired"
+
+
+class TaskStatus(str, Enum):
+    enabled = "enabled"
+    disabled = "disabled"
+
+    def __str__(self):
+        return self.value

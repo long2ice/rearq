@@ -1,6 +1,6 @@
 from tortoise import Model, fields
 
-from rearq import job
+from rearq.enums import JobStatus
 
 
 class Job(Model):
@@ -13,7 +13,7 @@ class Job(Model):
     job_id = fields.CharField(max_length=200, unique=True)
     enqueue_time = fields.DatetimeField()
     expire_time = fields.DatetimeField(null=True)
-    status = fields.CharEnumField(job.JobStatus)
+    status = fields.CharEnumField(JobStatus)
 
     class Meta:
         ordering = ["-id"]

@@ -9,7 +9,7 @@ from tortoise import timezone
 
 from rearq import constants
 from rearq.constants import WORKER_KEY
-from rearq.job import JobStatus
+from rearq.enums import JobStatus
 from rearq.server.models import Job, JobResult
 from rearq.server.schemas import TaskStatus
 from rearq.utils import ms_to_datetime, timestamp_ms_now, to_ms_timestamp
@@ -56,6 +56,7 @@ class Task:
 
     async def delay(
         self,
+        *arg: Any,
         args: Optional[Tuple[Any, ...]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
         job_id: str = None,
@@ -64,7 +65,8 @@ class Task:
         expire: Optional[Union[float, datetime.datetime]] = None,
         job_retry: int = 0,
         job_retry_after: int = 60,
-    ) -> Job:
+        **kwarg: Any,
+    ) -> Optional[Job]:
         """
         Add job to queue.
         :param args: Job args.
@@ -88,11 +90,13 @@ class Task:
         if job:
             logger.warning(f"Job {job_id} exists")
             return job
-
+        if await self.is_disabled():
+            logger.warning(f"Task {self.name} is disabled")
+            return
         job = Job(
-            task=self.function.__name__,
-            args=args,
-            kwargs=kwargs,
+            task=self.name,
+            args=args or arg,
+            kwargs=kwargs or kwarg,
             job_retry=job_retry or self.job_retry,
             queue=self.queue,
             job_id=job_id,

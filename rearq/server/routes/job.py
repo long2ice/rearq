@@ -5,7 +5,7 @@ from starlette.requests import Request
 from starlette.status import HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
 
 from rearq import ReArq, constants
-from rearq.job import JobStatus
+from rearq.enums import JobStatus
 from rearq.server import templates
 from rearq.server.depends import get_pager, get_rearq
 from rearq.server.models import Job, JobResult

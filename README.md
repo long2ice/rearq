@@ -23,6 +23,7 @@ You can try [Demo Online](https://demo-rearq.long2ice.io) here.
 ## Requirements
 
 - Redis >= 5.0
+- [TortoiseORM](https://github.com/tortoise/tortoise-orm)
 
 ## Install
 
@@ -126,6 +127,12 @@ async def shutdown() -> None:
 @app.get("/test")
 async def test():
     job = await add.delay(args=(1, 2))
+    # or
+    job = await add.delay(kwargs={"a": 1, "b": 2})
+    # or
+    job = await add.delay(1, 2)
+    # or
+    job = await add.delay(a=1, b=2)
     return job.info()
 ```
 
@@ -152,4 +159,4 @@ and [https://127.0.0.1:8000](https://127.0.0.1:8000) to see web interface.
 
 ## License
 
-This project is under the [MIT](https://github.com/long2ice/rearq/blob/master/LICENSE) License.
+This project is licensed under the [Apache-2.0](./LICENSE) License.

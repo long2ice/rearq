@@ -17,7 +17,7 @@ from tortoise.expressions import F
 
 from rearq import CronTask, UsageError, constants
 from rearq.constants import DEFAULT_QUEUE, DELAY_QUEUE, DELAY_QUEUE_CHANNEL, QUEUE_KEY_PREFIX
-from rearq.job import JobStatus
+from rearq.enums import JobStatus
 from rearq.server.models import Job, JobResult
 from rearq.task import check_keep_job, check_pending_msgs
 from rearq.utils import args_to_string, ms_to_datetime, timestamp_ms_now, to_ms_timestamp
