@@ -1,3 +1,6 @@
+import asyncio
+from typing import Optional
+
 from tortoise import Model, fields
 
 from rearq.enums import JobStatus
@@ -17,6 +20,14 @@ class Job(Model):
 
     class Meta:
         ordering = ["-id"]
+
+    async def result(self, timeout: Optional[int] = None):
+        while timeout > 0:
+            result = await JobResult.filter(job_id=self.pk).order_by("-id").first()
+            if result:
+                return result
+            await asyncio.sleep(1)
+            timeout -= 1
 
 
 class JobResult(Model):

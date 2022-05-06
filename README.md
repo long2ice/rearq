@@ -133,7 +133,9 @@ async def test():
     job = await add.delay(1, 2)
     # or
     job = await add.delay(a=1, b=2)
-    return job.info()
+    result = await job.result(timeout=5) # wait result for 5 seconds
+    print(result.result)
+    return result
 ```
 
 ## Start web interface

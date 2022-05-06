@@ -42,10 +42,10 @@ class Task:
         return self.name in [check_pending_msgs.__name__, check_keep_job.__name__]
 
     async def enable(self):
-        await self.rearq.redis.hset(constants.TASK_KEY, self.name, TaskStatus.enabled)
+        return await self.rearq.redis.hset(constants.TASK_KEY, self.name, TaskStatus.enabled)
 
     async def disable(self):
-        await self.rearq.redis.hset(constants.TASK_KEY, self.name, TaskStatus.disabled)
+        return await self.rearq.redis.hset(constants.TASK_KEY, self.name, TaskStatus.disabled)
 
     async def is_enabled(self):
         status = await self.rearq.redis.hget(constants.TASK_KEY, self.name)
@@ -80,7 +80,7 @@ class Task:
         :return:
         """
         if not job_id:
-            job_id = uuid4().hex
+            job_id = str(uuid4())
         expire_time = None
         expires = expire or self.expire
         if expires:
@@ -156,7 +156,7 @@ async def check_pending_msgs(self: Task, timeout: int):
             for msg in pending_msgs:
                 msg_id = msg.get("message_id")
                 idle_time = msg.get("time_since_delivered")
-                if int(idle_time / 10**6) > timeout * 2:
+                if int(idle_time / 10 ** 6) > timeout * 2:
                     execute = True
                     p.xack(queue, group, msg_id)
                     job_result = await JobResult.filter(msg_id=msg_id).only("job_id").first()
