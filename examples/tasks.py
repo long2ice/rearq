@@ -2,26 +2,24 @@ import asyncio
 import os
 
 from loguru import logger
-from tortoise import Tortoise
 
 from rearq import ReArq
-from rearq.server import models
 
-rearq = ReArq(delay_queue_num=2, keep_job_days=7)
+rearq = ReArq(
+    db_url=f"mysql://root:{os.getenv('MYSQL_PASS')}@localhost:3306/rearq",
+    redis_url=f"redis://:{os.getenv('REDIS_PASS')}@localhost:6379/0",
+    delay_queue_num=2,
+    keep_job_days=7,
+)
 
 
 @rearq.on_shutdown
 async def on_shutdown():
     logger.debug("rearq is shutdown")
-    await Tortoise.close_connections()
 
 
 @rearq.on_startup
 async def on_startup():
-    await Tortoise.init(
-        db_url=f"mysql://root:{os.getenv('MYSQL_PASS') or '123456'}@127.0.0.1:3306/rearq?pool_recycle=3600",
-        modules={"models": [models]},
-    )
     logger.debug("rearq is startup")
 
 

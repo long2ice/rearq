@@ -8,10 +8,12 @@ from typing import Any, Callable, Dict, List, Optional, Set, Union
 import aioredis
 import aioredis.sentinel
 from aioredis import Redis
+from tortoise import Tortoise
 
 from rearq import constants
 from rearq.constants import DELAY_QUEUE_CHANNEL
 from rearq.exceptions import UsageError
+from rearq.server import models
 from rearq.task import CronTask, Task
 
 Serializer = Callable[[Dict[str, Any]], bytes]
@@ -27,6 +29,7 @@ class ReArq:
 
     def __init__(
         self,
+        db_url: str,
         redis_url: str = "redis://localhost:6379/0",
         sentinels: Optional[List[str]] = None,
         sentinel_master: str = "master",
@@ -40,6 +43,7 @@ class ReArq:
         logs_dir: Optional[str] = os.path.join(constants.WORKER_DIR, "logs"),
     ):
         """
+        :param db_url: database url
         :param sentinel_master:
         :param job_retry: Default job retry times.
         :param job_retry_after: Default job retry after seconds.
@@ -59,6 +63,7 @@ class ReArq:
         self.delay_queue_num = delay_queue_num
         self.keep_job_days = keep_job_days
         self.logs_dir = logs_dir
+        self.db_url = db_url
         self._init()
 
     def _init(self):
@@ -199,7 +204,15 @@ class ReArq:
         if tasks:
             await asyncio.gather(*tasks)
 
+    async def _init_db(self):
+        await Tortoise.init(
+            db_url=self.db_url,
+            modules={"rearq": [models]},
+        )
+        await Tortoise.generate_schemas()
+
     async def startup(self):
+        await self._init_db()
         tasks = []
         for fun in self._on_startup:
             tasks.append(fun())

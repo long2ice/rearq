@@ -20,6 +20,7 @@ class Job(Model):
 
     class Meta:
         ordering = ["-id"]
+        table = "rearq_job"
 
     async def result(self, timeout: Optional[int] = None):
         while timeout > 0:
@@ -31,7 +32,7 @@ class Job(Model):
 
 
 class JobResult(Model):
-    job: fields.ForeignKeyRelation[Job] = fields.ForeignKeyField("models.Job")
+    job: fields.ForeignKeyRelation[Job] = fields.ForeignKeyField("rearq.Job")
     worker = fields.CharField(max_length=200)
     success = fields.BooleanField(default=False)
     msg_id = fields.CharField(max_length=200, unique=True)
@@ -41,3 +42,4 @@ class JobResult(Model):
 
     class Meta:
         ordering = ["-id"]
+        table = "rearq_job_results"

@@ -7,6 +7,8 @@
 - Add task enable/disable.
 - Add arg/kwarg shortcut arguments.
 - Add log_dir param in rearq.
+- Add `db_url` to `ReArq` constructor。
+- Change built-in table name.
 
 ### 0.2.6
 
