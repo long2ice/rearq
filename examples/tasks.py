@@ -6,8 +6,8 @@ from loguru import logger
 from rearq import ReArq
 
 rearq = ReArq(
-    db_url=f"mysql://root:{os.getenv('MYSQL_PASS')}@localhost:3306/rearq",
-    redis_url=f"redis://:{os.getenv('REDIS_PASS')}@localhost:6379/0",
+    db_url=os.getenv("DATABASE_URL"),
+    redis_url=os.getenv("REDIS_URL"),
     delay_queue_num=2,
     keep_job_days=7,
 )
