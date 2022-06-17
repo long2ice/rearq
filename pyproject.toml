@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "rearq"
 version = "0.2.7"
-description = "Rewrite arq and make improvement."
+description = "A distributed task queue built with asyncio and redis, with built-in web interface"
 authors = ["long2ice <long2ice@gmail.com>"]
 license = "Apache-2.0"
 readme = "README.md"
