@@ -342,11 +342,11 @@ python-versions = "*"
 
 [[package]]
 name = "iso8601"
-version = "0.1.16"
+version = "1.0.2"
 description = "Simple module to parse ISO 8601 dates"
 category = "main"
 optional = false
-python-versions = "*"
+python-versions = ">=3.6.2,<4.0"
 
 [[package]]
 name = "isort"
@@ -713,7 +713,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "tortoise-orm"
-version = "0.18.1"
+version = "0.19.1"
 description = "Easy async ORM for python, built with relations in mind"
 category = "main"
 optional = false
@@ -721,15 +721,17 @@ python-versions = ">=3.7,<4.0"
 
 [package.dependencies]
 aiosqlite = ">=0.16.0,<0.18.0"
-iso8601 = ">=0.1.13,<0.2.0"
-pypika-tortoise = ">=0.1.3,<0.2.0"
+iso8601 = ">=1.0.2,<2.0.0"
+pypika-tortoise = ">=0.1.5,<0.2.0"
 pytz = "*"
 
 [package.extras]
 aiomysql = ["aiomysql"]
-asyncmy = ["asyncmy"]
+asyncmy = ["asyncmy (>=0.2.5,<0.3.0)"]
+asyncodbc = ["asyncodbc (>=0.1.1,<0.2.0)"]
 asyncpg = ["asyncpg"]
 accel = ["ciso8601", "orjson", "uvloop"]
+psycopg = ["psycopg"]
 
 [[package]]
 name = "typed-ast"
@@ -841,7 +843,7 @@ postgres = ["asyncpg"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "cc5024ef2a248aacb585192274d1ad92b0893407db28378edd634ef13aa6ad35"
+content-hash = "42675e42782bf07503a3f674cedfbb0c1aaaf9c9530766017bea8c1615f2b5ff"
 
 [metadata.files]
 aiofiles = [
@@ -1108,8 +1110,8 @@ iniconfig = [
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},
 ]
 iso8601 = [
-    {file = "iso8601-0.1.16-py2.py3-none-any.whl", hash = "sha256:906714829fedbc89955d52806c903f2332e3948ed94e31e85037f9e0226b8376"},
-    {file = "iso8601-0.1.16.tar.gz", hash = "sha256:36532f77cc800594e8f16641edae7f1baf7932f05d8e508545b95fc53c6dc85b"},
+    {file = "iso8601-1.0.2-py3-none-any.whl", hash = "sha256:d7bc01b1c2a43b259570bb307f057abc578786ea734ba2b87b836c5efc5bd443"},
+    {file = "iso8601-1.0.2.tar.gz", hash = "sha256:27f503220e6845d9db954fb212b95b0362d8b7e6c1b2326a87061c3de93594b1"},
 ]
 isort = [
     {file = "isort-5.10.1-py3-none-any.whl", hash = "sha256:6f62d78e2f89b4500b080fe3a81690850cd254227f27f75c3a0c491a1f351ba7"},
@@ -1343,8 +1345,8 @@ tomli = [
     {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
 ]
 tortoise-orm = [
-    {file = "tortoise-orm-0.18.1.tar.gz", hash = "sha256:537361ce2d0829741afd43afd9bc9413a314a176cb58747d88047c20ccc01db1"},
-    {file = "tortoise_orm-0.18.1-py3-none-any.whl", hash = "sha256:edc9f3b49635b1dd74f73de38f54e031377e4f02b3698322502047f2e031af8b"},
+    {file = "tortoise-orm-0.19.1.tar.gz", hash = "sha256:0ff278d76bec2e41beb14ea63f99ea6d473ee9d50fef68224a51954e5b38d39f"},
+    {file = "tortoise_orm-0.19.1-py3-none-any.whl", hash = "sha256:a89fef639d24cfabf1bcc43eb0b4657dbe9c277d01378a90eb2d370fb9dc03dd"},
 ]
 typed-ast = [
     {file = "typed_ast-1.5.4-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:669dd0c4167f6f2cd9f57041e03c3c2ebf9063d0757dc89f79ba1daa2bfca9d4"},

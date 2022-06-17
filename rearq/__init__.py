@@ -84,8 +84,6 @@ class ReArq:
 
     @property
     def redis(self):
-        if not self._redis:
-            raise UsageError("You must call .init() first!")
         return self._redis
 
     @property
@@ -212,8 +210,10 @@ class ReArq:
         )
         await Tortoise.generate_schemas()
 
-    async def startup(self):
+    async def init(self):
         await self._init_db()
+
+    async def startup(self):
         tasks = []
         for fun in self._on_startup:
             tasks.append(fun())

@@ -103,6 +103,7 @@ class Worker:
         logger.success(f"Start worker success with queue: {','.join(self.queues)}")
         logger.info(f"Registered tasks: {', '.join(self.register_tasks)}")
         await self.log_redis_info()
+        await self.rearq.init()
         await self.rearq.startup()
         while True:
             msgs = await self._redis.xreadgroup(
@@ -376,6 +377,7 @@ class TimerWorker(Worker):
         logger.info(f"Registered timer tasks: {', '.join(tasks)}")
 
         await self.log_redis_info()
+        await self.rearq.init()
         await self.rearq.startup()
         await self._run_at_start()
         asyncio.ensure_future(self.sub_delay())
