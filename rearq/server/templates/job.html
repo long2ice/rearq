@@ -137,7 +137,7 @@
                                             <div class="mb-3">
                                                 <label for="kwargs-${row.job_id}"
                                                        class="col-form-label">Kwargs:</label>
-                                                <input type="text" value="${row.kwargs || ""}" class="form-control" id="kwargs-${row.job_id}">
+                                                <input type="text" value="${Object.keys(row.kwargs).length === 0 ? "" : row.kwargs}" class="form-control" id="kwargs-${row.job_id}">
                                             </div>
                                         </div>
                                     </div>
