@@ -1,7 +1,7 @@
 from typing import Optional
 
-from aioredis import Redis
 from fastapi import APIRouter, Depends
+from redis.asyncio.client import Redis
 from starlette.requests import Request
 
 from rearq import ReArq, constants

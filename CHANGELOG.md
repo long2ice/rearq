@@ -9,6 +9,8 @@
 - Add log_dir param in rearq.
 - Add `db_url` to `ReArq` constructor。
 - Change built-in table name.
+- Replace `aioredis` with `redis-py`.
+- Support consume more than one queue for one worker.
 
 ### 0.2.6
 

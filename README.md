@@ -46,10 +46,8 @@ Use PostgreSQL backend:
 ```python
 # main.py
 from rearq import ReArq
-from rearq.server import models
-from tortoise import Tortoise
 
-rearq = ReArq()
+rearq = ReArq(db_url='mysql://root:123456@127.0.0.1:3306/rearq')
 
 
 @rearq.on_shutdown
@@ -60,16 +58,11 @@ async def on_shutdown():
 
 @rearq.on_startup
 async def on_startup():
-    # init tortoise
-    await Tortoise.init(
-        db_url=f"mysql://root:123456@127.0.0.1:3306/rearq",
-        modules={"models": [models]},
-    )
-    # you should do some initialization work here, such tortoise-orm init and so on...
+    # you should do some initialization work here
     print("startup")
 
 
-@rearq.task(queue="myqueue")
+@rearq.task(queue="q1")
 async def add(self, a, b):
     return a + b
 
@@ -82,7 +75,7 @@ async def timer(self):
 ### Run rearq worker
 
 ```shell
-> rearq main:rearq worker -q myqueue
+> rearq main:rearq worker -q q1 -q q2 # consume tasks from q1 and q2 as the same time
 ```
 
 ```log
@@ -133,7 +126,7 @@ async def test():
     job = await add.delay(1, 2)
     # or
     job = await add.delay(a=1, b=2)
-    result = await job.result(timeout=5) # wait result for 5 seconds
+    result = await job.result(timeout=5)  # wait result for 5 seconds
     print(result.result)
     return result
 ```

@@ -6,7 +6,7 @@ from loguru import logger
 from rearq import ReArq
 
 rearq = ReArq(
-    db_url=os.getenv("DATABASE_URL"),
+    db_url=os.getenv("DB_URL"),
     redis_url=os.getenv("REDIS_URL"),
     delay_queue_num=2,
     keep_job_days=7,

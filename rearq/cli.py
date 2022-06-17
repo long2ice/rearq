@@ -2,6 +2,7 @@ import asyncio
 import importlib
 import sys
 from functools import wraps
+from typing import List
 
 import click
 import uvicorn
@@ -47,7 +48,7 @@ async def cli(ctx: Context, rearq: str, verbose):
 
 
 @cli.command(help="Start a worker.")
-@click.option("-q", "--queue", required=False, help="Queue to consume.")
+@click.option("-q", "--queue", required=False, multiple=True, help="Queue to consume.")
 @click.option(
     "--group-name",
     required=False,
@@ -56,9 +57,9 @@ async def cli(ctx: Context, rearq: str, verbose):
 @click.option("--consumer-name", required=False, help="Consumer name.")
 @click.pass_context
 @coro
-async def worker(ctx: Context, queue: str, group_name: str, consumer_name: str):
+async def worker(ctx: Context, queue: List[str], group_name: str, consumer_name: str):
     rearq = ctx.obj["rearq"]
-    w = Worker(rearq, queue=queue, group_name=group_name, consumer_name=consumer_name)
+    w = Worker(rearq, queues=queue, group_name=group_name, consumer_name=consumer_name)
     await w.run()
 
 
@@ -89,7 +90,7 @@ def server(ctx: Context, host: str, port: int):
     async def shutdown():
         await rearq.close()
 
-    uvicorn.run(app=app, host=host, port=port, debug=verbose)
+    uvicorn.run("rearq.server.app:app", host=host, port=port, debug=verbose)
 
 
 def main():

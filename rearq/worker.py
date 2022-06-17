@@ -5,13 +5,13 @@ import socket
 from functools import partial
 from math import inf
 from signal import Signals
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Set
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set
 from uuid import uuid4
 
 import async_timeout
-from aioredis import ResponseError
-from aioredis.lock import Lock
 from loguru import logger
+from redis.asyncio.lock import Lock
+from redis.exceptions import ResponseError
 from tortoise import timezone
 from tortoise.expressions import F
 
@@ -34,7 +34,7 @@ class Worker:
     def __init__(
         self,
         rearq: "ReArq",
-        queue: Optional[str] = None,
+        queues: Optional[List[str]] = None,
         group_name: Optional[str] = None,
         consumer_name: Optional[str] = None,
     ):
@@ -45,11 +45,14 @@ class Worker:
         self.rearq = rearq
         self._redis = rearq.redis
         self._lock = Lock(self._redis, name=constants.WORKER_KEY_LOCK)
-        self.register_tasks = rearq.get_queue_tasks(queue)
-        if queue:
-            self.queue = QUEUE_KEY_PREFIX + queue
+        self.register_tasks = []
+        self.queues = []
+        if queues:
+            for queue in queues:
+                self.register_tasks.extend(rearq.get_queue_tasks(queue))
+                self.queues.append(QUEUE_KEY_PREFIX + queue)
         else:
-            self.queue = DEFAULT_QUEUE
+            self.queues.append(DEFAULT_QUEUE)
         self.loop = asyncio.get_event_loop()
         self.sem = asyncio.BoundedSemaphore(self.max_jobs)
         self.queue_read_limit = max(self.max_jobs * 5, 100)
@@ -97,7 +100,7 @@ class Worker:
 
     async def _main(self) -> None:
         logger.add(f"{self.rearq.logs_dir}/worker-{self.worker_name}.log", rotation="00:00")
-        logger.success(f"Start worker success with queue: {self.queue}")
+        logger.success(f"Start worker success with queue: {','.join(self.queues)}")
         logger.info(f"Registered tasks: {', '.join(self.register_tasks)}")
         await self.log_redis_info()
         await self.rearq.startup()
@@ -105,7 +108,7 @@ class Worker:
             msgs = await self._redis.xreadgroup(
                 self.group_name,
                 self.consumer_name,
-                streams={self.queue: ">"},
+                streams={queue: ">" for queue in self.queues},
                 count=self.queue_read_limit,
                 block=2000,
             )
@@ -218,20 +221,23 @@ class Worker:
             await self._redis.hdel(constants.WORKER_KEY, self.worker_name)
         else:
             is_timer = isinstance(self, TimerWorker)
-            value = {
-                "queue": self.queue,
-                "is_timer": is_timer,
-                "ms": timestamp_ms_now(),
-                "group": self.group_name,
-                "consumer": self.consumer_name,
-            }
-            await self._redis.hset(constants.WORKER_KEY, self.worker_name, value=json.dumps(value))
+            p = self._redis.pipeline()
+            for q in self.queues:
+                value = {
+                    "queue": q,
+                    "is_timer": is_timer,
+                    "ms": timestamp_ms_now(),
+                    "group": self.group_name,
+                    "consumer": self.consumer_name,
+                }
+                p.hset(constants.WORKER_KEY, self.worker_name, value=json.dumps(value))
             if is_timer:
                 # To prevent the unpredictable shutdown
-                await self._redis.expire(
+                p.expire(
                     constants.WORKER_KEY_TIMER_LOCK,
                     constants.WORKER_HEARTBEAT_SECONDS + 2,
                 )
+            await p.execute()
 
     async def _heartbeat(self):
         """
@@ -243,7 +249,8 @@ class Worker:
 
     async def _pre_run(self):
         try:
-            await self._redis.xgroup_create(self.queue, self.group_name, mkstream=True)
+            for q in self.queues:
+                await self._redis.xgroup_create(q, self.group_name, mkstream=True)
         except ResponseError as e:
             if "BUSYGROUP Consumer Group name already exists" == str(e):
                 pass

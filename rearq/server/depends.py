@@ -1,5 +1,5 @@
-from aioredis import Redis
 from fastapi import Depends
+from redis.asyncio.client import Redis
 from starlette.requests import Request
 
 from rearq import ReArq

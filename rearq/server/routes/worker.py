@@ -2,8 +2,8 @@ import json
 import os
 
 import aiofiles
-from aioredis import Redis
 from fastapi import APIRouter, Depends
+from redis.asyncio.client import Redis
 from starlette.requests import Request
 from tortoise import timezone
 from tortoise.functions import Count

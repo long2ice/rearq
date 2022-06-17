@@ -18,7 +18,7 @@ include = ["LICENSE", "README.md", "CHANGELOG.md"]
 python = "^3.7"
 pydantic = "*"
 click = "*"
-aioredis = "*"
+redis = "^4.2.0rc1"
 crontab = "*"
 uvicorn = { version = "*", extras = ["standard"] }
 fastapi = "*"

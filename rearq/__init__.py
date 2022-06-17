@@ -5,9 +5,9 @@ import os
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Set, Union
 
-import aioredis
-import aioredis.sentinel
-from aioredis import Redis
+from redis.asyncio.client import Redis
+from redis.asyncio.connection import ConnectionPool
+from redis.asyncio.sentinel import Sentinel
 from tortoise import Tortoise
 
 from rearq import constants
@@ -71,14 +71,15 @@ class ReArq:
             return
 
         if self.sentinels:
-            sentinel = aioredis.sentinel.Sentinel(self.sentinels, decode_responses=True)
+            sentinel = Sentinel(self.sentinels, decode_responses=True)
             redis = sentinel.master_for(self.sentinel_master)
 
         else:
-            redis = aioredis.from_url(
+            pool = ConnectionPool.from_url(
                 self.redis_url,
                 decode_responses=True,
             )
+            redis = Redis(connection_pool=pool)
         self._redis = redis
 
     @property

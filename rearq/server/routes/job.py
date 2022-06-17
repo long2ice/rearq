@@ -1,7 +1,7 @@
 from typing import Optional
 
-from aioredis import Redis
 from fastapi import APIRouter, Depends, HTTPException
+from redis.asyncio.client import Redis
 from starlette.requests import Request
 from starlette.status import HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
 
