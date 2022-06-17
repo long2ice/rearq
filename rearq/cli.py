@@ -84,7 +84,7 @@ def server(ctx: Context, host: str, port: int):
 
     @app.on_event("startup")
     async def startup():
-        await rearq.startup()
+        await rearq.init()
 
     @app.on_event("shutdown")
     async def shutdown():
