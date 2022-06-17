@@ -25,7 +25,7 @@ fastapi = "*"
 loguru = "*"
 jinja2 = "*"
 aiofiles = "*"
-tortoise-orm = "^0.18.1"
+tortoise-orm = "*"
 asyncmy = { version = "*", optional = true }
 asyncpg = { version = "*", optional = true }
 
