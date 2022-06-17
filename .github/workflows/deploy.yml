@@ -1,11 +1,11 @@
 name: deploy
 on:
   push:
-    branches-ignore:
-      - master
+    branches:
+      - 'dev'
   pull_request:
-    branches-ignore:
-      - master
+    branches:
+      - 'dev'
 jobs:
   build:
     runs-on: ubuntu-latest
