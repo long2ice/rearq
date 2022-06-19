@@ -57,7 +57,7 @@
             <th data-field="worker">Worker</th>
             <th data-field="job.task">Task</th>
             <th data-field="job.args">Args</th>
-            <th data-field="job.kwargs">Kwargs</th>
+            <th data-field="kwargs" data-formatter="kwargsFormatter">Kwargs</th>
             <th data-field="job.job_retry">Retry</th>
             <th data-field="job.job_retry_after">RetryAfter</th>
             <th data-field="job.enqueue_time" data-formatter="timeFormatter">EnqueueTime</th>
@@ -71,6 +71,7 @@
     </table>
 {% endblock %}
 {% block body_end %}
+    {% include "widgets/formatters.html" %}
     <script>
         let table = $('#table')
         let urlParams = new URLSearchParams(window.location.search);

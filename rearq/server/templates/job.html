@@ -58,7 +58,7 @@
             <th data-field="job_id" data-formatter="jobIdFormatter">JobID</th>
             <th data-field="task">Task</th>
             <th data-field="args">Args</th>
-            <th data-field="kwargs">Kwargs</th>
+            <th data-field="kwargs" data-formatter="kwargsFormatter">Kwargs</th>
             <th data-field="job_retry">JobRetry</th>
             <th data-field="job_retries">JobRetries</th>
             <th data-field="job_retry_after">JobRetryAfter</th>
@@ -71,6 +71,7 @@
     </table>
 {% endblock %}
 {% block body_end %}
+    {% include "widgets/formatters.html" %}
     <script>
         let table = $('#table')
         let urlParams = new URLSearchParams(window.location.search);
@@ -137,7 +138,7 @@
                                             <div class="mb-3">
                                                 <label for="kwargs-${row.job_id}"
                                                        class="col-form-label">Kwargs:</label>
-                                                <input type="text" value="${Object.keys(row.kwargs).length === 0 ? "" : row.kwargs}" class="form-control" id="kwargs-${row.job_id}">
+                                                <input type="text" value="${row.kwargs || ""}" class="form-control" id="kwargs-${row.job_id}">
                                             </div>
                                         </div>
                                     </div>
