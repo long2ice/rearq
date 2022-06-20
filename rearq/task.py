@@ -80,7 +80,7 @@ class Task:
         :return:
         """
         if not job_id:
-            job_id = str(uuid4())
+            job_id = uuid4().hex
         expire_time = None
         expires = expire or self.expire
         if expires:
