@@ -194,14 +194,20 @@ class Worker:
         except Exception as e:
             job_result.finish_time = timezone.now()
             self.jobs_failed += 1
-            result = f"Run task error in NO.{job.job_retries} times, exc: {e}, retry after {self.job_retry_after} seconds"
-            logger.error("%6.2fs ← %s ● %s" % ((timestamp_ms_now() - start_ms) / 1000, ref, result))
 
-            if job.job_retries >= job.job_retry:
+            if job.job_retries >= job.job_retry or self.job_retry == 0:
+                result = f"Run job error, exc: {e}"
+                logger.error(
+                    "%6.2fs ← %s ● %s" % ((timestamp_ms_now() - start_ms) / 1000, ref, result)
+                )
                 t = (timestamp_ms_now() - to_ms_timestamp(job.enqueue_time)) / 1000
                 logger.error("%6.2fs ! %s max retries %d exceeded" % (t, ref, job.job_retry))
                 job.status = JobStatus.failed
             else:
+                result = f"Run job error in NO.{job.job_retries} times, exc: {e}, retry after {self.job_retry_after} seconds"
+                logger.error(
+                    "%6.2fs ← %s ● %s" % ((timestamp_ms_now() - start_ms) / 1000, ref, result)
+                )
                 job.status = JobStatus.deferred
                 job.job_retries = F("job_retries") + 1
                 await self.rearq.zadd(to_ms_timestamp(self.job_retry_after), f"{queue}:{job_id}")
