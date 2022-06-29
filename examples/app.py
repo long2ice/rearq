@@ -4,7 +4,7 @@ from tortoise.contrib.fastapi import register_tortoise
 
 from examples import settings
 from examples.models import Test
-from examples.tasks import rearq, add
+from examples.tasks import add, rearq
 
 app = FastAPI()
 

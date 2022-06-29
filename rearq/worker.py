@@ -111,7 +111,7 @@ class Worker:
                 self.consumer_name,
                 streams={queue: ">" for queue in self.queues},
                 count=self.queue_read_limit,
-                block=2000,
+                block=10000,
             )
             if not msgs:
                 continue
@@ -297,7 +297,6 @@ class TimerWorker(Worker):
         super().__init__(rearq)
         self.consumer_name = "timer"
         self.queue = DELAY_QUEUE
-        self._timer_lock = Lock(self._redis, name=constants.WORKER_KEY_TIMER_LOCK)
         self.sleep_until: Optional[float] = None
         self.sleep_task: Optional[asyncio.Task] = None
         self.rearq.create_task(check_pending_msgs, True, self.queue, "* * * * *")
@@ -308,7 +307,10 @@ class TimerWorker(Worker):
         logger.info(
             "Trying to acquire timer lock because only one timer can be startup at same time..."
         )
-        async with self._timer_lock:
+        async with Lock(
+            self._redis,
+            name=constants.WORKER_KEY_TIMER_LOCK,
+        ):
             await super(TimerWorker, self).run()
 
     async def _run_at_start(self):
@@ -336,7 +338,14 @@ class TimerWorker(Worker):
             await p.execute()
 
     async def _sleep(self):
-        min_next_run = min([task.next_run for task in CronTask.get_cron_tasks().values()])
+        next_runs = []
+        for task in CronTask.get_cron_tasks().values():
+            if await task.is_enabled():
+                next_runs.append(task.next_run)
+        if next_runs:
+            min_next_run = min(next_runs)
+        else:
+            min_next_run = -1
         redis = self._redis
         p = redis.pipeline()
         for queue in self.rearq.delay_queues:
@@ -348,10 +357,16 @@ class TimerWorker(Worker):
         else:
             min_delay = min_next_run
         sleep_until = min(min_next_run, min_delay)
-        sleep_ms = sleep_until - timestamp_ms_now()
-        if sleep_ms > 0:
-            self.sleep_until = sleep_until
-            self.sleep_task = asyncio.ensure_future(asyncio.sleep(sleep_ms / 1000))
+        if sleep_until == -1:
+            sleep_seconds = 60
+            self.sleep_task = asyncio.ensure_future(asyncio.sleep(sleep_seconds))
+            self.sleep_until = timestamp_ms_now() + sleep_seconds * 1000
+        else:
+            sleep_ms = sleep_until - timestamp_ms_now()
+            if sleep_ms > 0:
+                self.sleep_until = sleep_until
+                self.sleep_task = asyncio.ensure_future(asyncio.sleep(sleep_ms / 1000))
+        if self.sleep_task:
             try:
                 await self.sleep_task
             except asyncio.CancelledError:
