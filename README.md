@@ -148,6 +148,12 @@ Options:
 After server run, you can visit [https://127.0.0.1:8000/docs](https://127.0.0.1:8000/docs) to see all apis
 and [https://127.0.0.1:8000](https://127.0.0.1:8000) to see web interface.
 
+Other options will pass into `uvicorn` directly, such as `--root-path` etc.
+
+```shell
+rearq main:rearq server --host 0.0.0.0 --root-path /rearq
+```
+
 ## ThanksTo
 
 - [arq](https://github.com/samuelcolvin/arq), Fast job queuing and RPC in python with asyncio and redis.

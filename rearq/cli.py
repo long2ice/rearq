@@ -72,7 +72,13 @@ async def timer(ctx: Context):
     await w.run()
 
 
-@cli.command(help="Start rest api server.")
+@cli.command(
+    help="Start rest api server.",
+    context_settings=dict(
+        ignore_unknown_options=True,
+        allow_extra_args=True,
+    ),
+)
 @click.option("--host", default="127.0.0.1", show_default=True, help="Listen host.")
 @click.option("-p", "--port", default=8000, show_default=True, help="Listen port.")
 @click.pass_context
@@ -90,7 +96,10 @@ def server(ctx: Context, host: str, port: int):
     async def shutdown():
         await rearq.close()
 
-    uvicorn.run("rearq.server.app:app", host=host, port=port, debug=verbose)
+    kwargs = {
+        ctx.args[i][2:].replace("-", "_"): ctx.args[i + 1] for i in range(0, len(ctx.args), 2)
+    }
+    uvicorn.run("rearq.server.app:app", host=host, port=port, debug=verbose, **kwargs)
 
 
 def main():
