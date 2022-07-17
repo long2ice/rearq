@@ -34,7 +34,7 @@ async def job_page(
 
 
 @router.get("/data", response_model=JobListOut)
-async def get_results(
+async def get_jobs(
     task: Optional[str] = None,
     job_id: Optional[str] = None,
     start_time: Optional[str] = None,

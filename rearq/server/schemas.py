@@ -27,3 +27,4 @@ class UpdateJobIn(BaseModel):
 
 class UpdateTask(BaseModel):
     status: TaskStatus
+    task_name: str

@@ -46,10 +46,10 @@ async def get_tasks(request: Request, rearq: ReArq = Depends(get_rearq)):
     )
 
 
-@router.put("/{task_name}")
-async def update_task(task_name: str, ut: UpdateTask, rearq: ReArq = Depends(get_rearq)):
+@router.put("")
+async def update_task(ut: UpdateTask, rearq: ReArq = Depends(get_rearq)):
     task_map = rearq.task_map
-    task = task_map.get(task_name)
+    task = task_map.get(ut.task_name)
     if task:
         if task.is_builtin:
             raise HTTPException(status_code=HTTP_409_CONFLICT, detail="Can't update builtin task")

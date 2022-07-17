@@ -73,7 +73,7 @@
         function show_logs(name, btn) {
             let modal = btn.parent().find('.modal-body');
             $.ajax({
-                url: "/worker/log?name=" + name,
+                url: "{{ url_for("worker_logs") }}?name=" + name,
                 method: "GET",
                 success: res => {
                     modal.html(res.replace(/\n/g, '<br/>'));
@@ -83,7 +83,7 @@
 
         function delete_worker(name) {
             $.ajax({
-                url: "/worker?name=" + name,
+                url: "{{ url_for("delete_worker") }}?name=" + name,
                 method: "DELETE",
                 success: res => {
                     location.reload();

@@ -50,7 +50,7 @@
            data-pagination="true"
            data-side-pagination="server"
            data-pagination-loop="false"
-           data-url="/job/data" data-query-params="queryParams">
+           data-url="{{ url_for("get_jobs") }}" data-query-params="queryParams">
         <thead>
         <tr>
             <th data-field="state" data-checkbox="true"></th>
@@ -208,7 +208,7 @@
                 data.job_retry_after = job_retry_after;
             }
             $.ajax({
-                url: '/job',
+                url: '{{ url_for("update_job") }}',
                 method: 'PUT',
                 data: JSON.stringify(data),
                 contentType: 'application/json',
@@ -246,7 +246,7 @@
                     return row.id
                 });
                 $.ajax({
-                    url: "/job?ids=" + ids,
+                    url: "{{ url_for("delete_job") }}?ids=" + ids,
                     method: 'DELETE',
                     success: res => {
                         table.bootstrapTable('remove', {field: 'id', values: ids});

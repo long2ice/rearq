@@ -54,7 +54,7 @@ async def delete_worker(name: str, redis: Redis = Depends(get_redis)):
 
 
 @router.get("/log")
-async def logs(name: str, rearq: ReArq = Depends(get_rearq)):
+async def worker_logs(name: str, rearq: ReArq = Depends(get_rearq)):
     log_file = os.path.join(rearq.logs_dir, f"worker-{name}.log")
     async with aiofiles.open(log_file, mode="r") as f:
         content = await f.read()

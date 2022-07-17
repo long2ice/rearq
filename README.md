@@ -23,7 +23,6 @@ You can try [Demo Online](https://demo-rearq.long2ice.io) here.
 ## Requirements
 
 - Redis >= 5.0
-- [TortoiseORM](https://github.com/tortoise/tortoise-orm)
 
 ## Install
 

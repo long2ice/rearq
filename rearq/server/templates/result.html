@@ -49,7 +49,7 @@
            data-pagination="true"
            data-side-pagination="server"
            data-pagination-loop="false"
-           data-url="/result/data" data-query-params="queryParams">
+           data-url="{{ url_for("get_results") }}" data-query-params="queryParams">
         <thead>
         <tr>
             <th data-field="state" data-checkbox="true"></th>
@@ -89,7 +89,7 @@
         }
 
         function jobIdFormatter(value, row) {
-            return `<a class="text-decoration-none" href="/job?job_id=${value}">${value}</a>`;
+            return `<a class="text-decoration-none" href="{{ url_for("job_page") }}?job_id=${value}">${value}</a>`;
         }
 
         function booleanFormatter(value, row) {
@@ -110,7 +110,7 @@
                     return row.id
                 });
                 $.ajax({
-                    url: "/result?ids=" + ids,
+                    url: "{{ url_for("delete_result") }}?ids=" + ids,
                     method: 'DELETE',
                     success: res => {
                         table.bootstrapTable('remove', {field: 'id', values: ids});

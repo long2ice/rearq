@@ -13,7 +13,7 @@
             <div class="card-body">
                 <h5 class="card-title">{{ task_num }}</h5>
                 <p class="card-text">All task num</p>
-                <a href="/task" class="stretched-link"></a>
+                <a href="{{ url_for("get_tasks") }}" class="stretched-link"></a>
             </div>
         </div>
         <div class="flex-grow-1 card text-white bg-success me-3">
@@ -21,7 +21,7 @@
             <div class="card-body">
                 <h5 class="card-title">{{ run_times }}</h5>
                 <p class="card-text">All task run times</p>
-                <a href="/result" class="stretched-link"></a>
+                <a href="{{ url_for("result") }}" class="stretched-link"></a>
             </div>
         </div>
         <div class="flex-grow-1 card text-white bg-secondary">
@@ -29,7 +29,7 @@
             <div class="card-body">
                 <h5 class="card-title">{{ worker_num }}</h5>
                 <p class="card-text">All worker num, include timer worker</p>
-                <a href="/worker" class="stretched-link"></a>
+                <a href="{{ url_for("get_workers") }}" class="stretched-link"></a>
             </div>
         </div>
     </div>
