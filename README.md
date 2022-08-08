@@ -97,6 +97,8 @@ If you have timing task or delay task, you should run another command also:
 2021-03-29 09:54:43.894 | INFO     | rearq.worker:log_redis_info:86 - redis_version=6.2.1 mem_usage=1.25M clients_connected=2 db_keys=6
 ```
 
+Also, you can run timer with worker together by `rearq main:rearq worker -t`.
+
 ### Integration in FastAPI
 
 ```python

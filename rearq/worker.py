@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import signal
 import socket
 from functools import partial
@@ -103,8 +104,6 @@ class Worker:
         logger.success(f"Start worker success with queue: {','.join(self.queues)}")
         logger.info(f"Registered tasks: {', '.join(self.register_tasks)}")
         await self.log_redis_info()
-        await self.rearq.init()
-        await self.rearq.startup()
         while True:
             msgs = await self._redis.xreadgroup(
                 self.group_name,
@@ -265,16 +264,7 @@ class Worker:
                 raise e
         if not self.consumer_name:
             async with self._lock:
-                workers = await self._redis.hgetall(constants.WORKER_KEY)
-                length = len(
-                    list(
-                        filter(
-                            lambda item: not json.loads(item[1]).get("is_timer"),
-                            workers.items(),
-                        )
-                    )
-                )
-                self.consumer_name = length
+                self.consumer_name = os.getpid()
                 await self._push_heartbeat()
 
     async def run(self):
@@ -398,8 +388,6 @@ class TimerWorker(Worker):
         logger.info(f"Registered timer tasks: {', '.join(tasks)}")
 
         await self.log_redis_info()
-        await self.rearq.init()
-        await self.rearq.startup()
         await self._run_at_start()
         asyncio.ensure_future(self.sub_delay())
         while True:

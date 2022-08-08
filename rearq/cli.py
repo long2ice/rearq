@@ -8,6 +8,7 @@ import click
 import uvicorn
 from click import BadArgumentUsage, Context
 
+from rearq import ReArq
 from rearq.server.app import app
 from rearq.version import VERSION
 from rearq.worker import TimerWorker, Worker
@@ -37,10 +38,11 @@ async def cli(ctx: Context, rearq: str, verbose):
     rearq = splits[1]
     try:
         module = importlib.import_module(rearq_path)
-        rearq = getattr(module, rearq, None)
-
+        r = getattr(module, rearq, None)  # type:ReArq
+        await r.init()
+        await r.startup()
         ctx.ensure_object(dict)
-        ctx.obj["rearq"] = rearq
+        ctx.obj["rearq"] = r
         ctx.obj["verbose"] = verbose
 
     except (ModuleNotFoundError, AttributeError) as e:
@@ -55,12 +57,19 @@ async def cli(ctx: Context, rearq: str, verbose):
     help="Group name.",
 )
 @click.option("--consumer-name", required=False, help="Consumer name.")
+@click.option("-t", "--with-timer", required=False, is_flag=True, help="Start with timer.")
 @click.pass_context
 @coro
-async def worker(ctx: Context, queue: List[str], group_name: str, consumer_name: str):
+async def worker(
+    ctx: Context, queue: List[str], group_name: str, consumer_name: str, with_timer: bool
+):
     rearq = ctx.obj["rearq"]
     w = Worker(rearq, queues=queue, group_name=group_name, consumer_name=consumer_name)
-    await w.run()
+    if with_timer:
+        t = TimerWorker(rearq)
+        await asyncio.gather(w.run(), t.run())
+    else:
+        await w.run()
 
 
 @cli.command(help="Start a timer.")
