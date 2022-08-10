@@ -106,7 +106,7 @@ def server(ctx: Context):
     kwargs = {
         ctx.args[i][2:].replace("-", "_"): ctx.args[i + 1] for i in range(0, len(ctx.args), 2)
     }
-    uvicorn.run("rearq.server.app:app", host=host, port=port, debug=verbose, **kwargs)
+    uvicorn.run("rearq.server.app:app", verbose=verbose, **kwargs)
 
 
 def main():
