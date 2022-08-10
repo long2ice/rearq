@@ -88,12 +88,10 @@ async def timer(ctx: Context):
         allow_extra_args=True,
     ),
 )
-@click.option("--host", default="127.0.0.1", show_default=True, help="Listen host.")
-@click.option("-p", "--port", default=8000, show_default=True, help="Listen port.")
 @click.pass_context
-def server(ctx: Context, host: str, port: int):
+def server(ctx: Context):
     rearq = ctx.obj["rearq"]
-    app.rearq = rearq
+    app.set_rearq(rearq)
 
     verbose = ctx.obj["verbose"]
 

@@ -5,6 +5,7 @@ from tortoise.contrib.fastapi import register_tortoise
 from examples import settings
 from examples.models import Test
 from examples.tasks import add, rearq
+from rearq.server.app import app as rearq_app
 
 app = FastAPI()
 
@@ -17,6 +18,8 @@ register_tortoise(
     generate_schemas=True,
     add_exception_handlers=True,
 )
+app.mount("/rearq", rearq_app)
+rearq_app.set_rearq(rearq)
 
 
 @app.on_event("startup")

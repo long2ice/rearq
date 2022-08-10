@@ -2,6 +2,14 @@
 
 ## 0.2
 
+### 0.2.8
+
+- Add `-t` flat to worker command to start timer together.
+- Support custom uvicorn options.
+- Fix empty kwargs shown.
+- Fix chart when empty data.
+- Server can mount as FastAPI sub app.
+
 ### 0.2.7
 
 - Add task enable/disable.

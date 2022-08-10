@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rearq"
-version = "0.2.7"
+version = "0.2.8"
 description = "A distributed task queue built with asyncio and redis, with built-in web interface"
 authors = ["long2ice <long2ice@gmail.com>"]
 license = "Apache-2.0"
@@ -16,14 +16,11 @@ include = ["LICENSE", "README.md", "CHANGELOG.md"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
-pydantic = "*"
 click = "*"
 redis = "^4.2.0rc1"
 crontab = "*"
-uvicorn = { version = "*", extras = ["standard"] }
-fastapi = "*"
+fastapi = { version = "*", extras = ["all"] }
 loguru = "*"
-jinja2 = "*"
 aiofiles = "*"
 tortoise-orm = "*"
 asyncmy = { version = "*", optional = true }

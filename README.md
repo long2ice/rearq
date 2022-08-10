@@ -155,6 +155,23 @@ Other options will pass into `uvicorn` directly, such as `--root-path` etc.
 rearq main:rearq server --host 0.0.0.0 --root-path /rearq
 ```
 
+### Mount as FastAPI sub app
+
+You can also mount rearq server as FastAPI sub app.
+
+```python
+
+from fastapi import FastAPI
+
+from examples.tasks import rearq
+from rearq.server.app import app as rearq_app
+
+app = FastAPI()
+
+app.mount("/rearq", rearq_app)
+rearq_app.set_rearq(rearq)
+```
+
 ## ThanksTo
 
 - [arq](https://github.com/samuelcolvin/arq), Fast job queuing and RPC in python with asyncio and redis.

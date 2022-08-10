@@ -1,3 +1,5 @@
+import datetime
+
 from fastapi import APIRouter, Depends
 from pypika.functions import Date
 from starlette.requests import Request
@@ -22,9 +24,11 @@ async def index(request: Request, rearq: ReArq = Depends(get_rearq), redis=Depen
     workers_info = await redis.hgetall(constants.WORKER_KEY)
     worker_num = len(workers_info)
     run_times = await JobResult.all().count()
+    end_date = datetime.datetime.today()
+    start_date = end_date - datetime.timedelta(days=30)
     result = (
-        await Job.all()
-        .annotate(count=Count("id"), date=ToDate("enqueue_time"))
+        await Job.annotate(count=Count("id"), date=ToDate("enqueue_time"))
+        .filter(date__gt=start_date)
         .group_by("date", "status")
         .order_by("date")
         .values("date", "status", "count")
@@ -68,24 +72,38 @@ async def index(request: Request, rearq: ReArq = Depends(get_rearq), redis=Depen
             "label": {"show": "true"},
         },
     ]
-    for item in result:
-        date = str(item.get("date"))
-        if date not in x_axis:
-            x_axis.append(date)
-        count = item.get("count")
-        status = item.get("status")
-        if status == "deferred":
-            series[0]["data"].append(count)
-        elif status == "queued":
-            series[1]["data"].append(count)
-        elif status == "in_progress":
-            series[2]["data"].append(count)
-        elif status == "success":
-            series[3]["data"].append(count)
-        elif status == "failed":
-            series[4]["data"].append(count)
-        elif status == "expired":
-            series[5]["data"].append(count)
+    dates = [
+        (start_date + datetime.timedelta(days=d)).date()
+        for d in range((end_date - start_date).days + 1)
+    ]
+    for d in dates:
+        x_axis.append(str(d))
+        has = False
+        for item in result:
+            date = item.get("date")
+            if date == d:
+                has = True
+                count = item.get("count")
+                status = item.get("status")
+                if status == "deferred":
+                    series[0]["data"].append(count)
+                elif status == "queued":
+                    series[1]["data"].append(count)
+                elif status == "in_progress":
+                    series[2]["data"].append(count)
+                elif status == "success":
+                    series[3]["data"].append(count)
+                elif status == "failed":
+                    series[4]["data"].append(count)
+                elif status == "expired":
+                    series[5]["data"].append(count)
+        if not has:
+            series[0]["data"].append(0)
+            series[1]["data"].append(0)
+            series[2]["data"].append(0)
+            series[3]["data"].append(0)
+            series[4]["data"].append(0)
+            series[5]["data"].append(0)
     return templates.TemplateResponse(
         "dashboard.html",
         {
