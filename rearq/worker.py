@@ -147,7 +147,7 @@ class Worker:
 
     async def run_job(self, queue: str, msg_id: str, job: Job):
         await self.sem.acquire()
-        if job.expire_time and job.expire_time > timezone.now():
+        if job.expire_time and job.expire_time < timezone.now():
             logger.warning(f"job {job.job_id} is expired, ignore")
             job.status = JobStatus.expired
             await job.save(update_fields=["status"])
