@@ -106,6 +106,8 @@ def server(ctx: Context):
     kwargs = {
         ctx.args[i][2:].replace("-", "_"): ctx.args[i + 1] for i in range(0, len(ctx.args), 2)
     }
+    if "port" in kwargs:
+        kwargs["port"] = int(kwargs["port"])
     uvicorn.run("rearq.server.app:app", debug=verbose, **kwargs)
 
 
