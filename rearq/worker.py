@@ -133,10 +133,9 @@ class Worker:
                         logger.warning(f"job {job_id} not found")
                         await self._xack(queue, msg_id)
                         continue
-                    task = self.loop.create_task(self.run_job(queue, msg_id, job))
+                    task = asyncio.ensure_future(self.run_job(queue, msg_id, job))
                     task.add_done_callback(self._task_done)
                     self.tasks.add(task)
-            await asyncio.gather(*self.tasks)
 
     def _task_done(self, task):
         self.sem.release()
