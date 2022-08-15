@@ -119,7 +119,7 @@ class Worker:
                 queue, msg_items = msg
                 for msg_item in msg_items:
                     jobs_id.append(msg_item[1].get("job_id"))
-            qs = Job.filter(job_id__in=jobs_id)
+            qs = Job.filter(job_id__in=jobs_id, status=JobStatus.queued)
             await qs.update(status=JobStatus.in_progress)
             jobs = await qs
             jobs_dict = {job.job_id: job for job in jobs}

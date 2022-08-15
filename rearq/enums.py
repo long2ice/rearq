@@ -12,6 +12,7 @@ class JobStatus(str, Enum):
     success = "success"
     failed = "failed"
     expired = "expired"
+    canceled = "canceled"
 
 
 class TaskStatus(str, Enum):

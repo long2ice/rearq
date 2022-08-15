@@ -11,7 +11,7 @@ from rearq.server import templates
 from rearq.server.depends import get_pager, get_rearq, get_redis
 from rearq.server.models import Job, JobResult
 from rearq.server.responses import JobListOut, JobOut
-from rearq.server.schemas import AddJobIn, TaskStatus, UpdateJobIn
+from rearq.server.schemas import AddJobIn, TaskStatus, UpdateJobIn, CancelJobIn
 
 router = APIRouter()
 
@@ -71,6 +71,18 @@ async def update_job(update_job_in: UpdateJobIn):
         await job.update_from_dict(update_job_in.dict(exclude_unset=True)).save()
     else:
         raise HTTPException(status_code=HTTP_409_CONFLICT, detail="Can't update job")
+
+
+@router.put("/cancel")
+async def cancel_job(cancel_job_in: CancelJobIn):
+    job = await Job.get_or_none(job_id=cancel_job_in.job_id)
+    if not job:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Can't find job")
+    if job.status in [JobStatus.queued, JobStatus.deferred, JobStatus.in_progress]:
+        job.status = JobStatus.canceled
+        await job.save(update_fields=["status"])
+    else:
+        raise HTTPException(status_code=HTTP_409_CONFLICT, detail="Can't cancel job")
 
 
 @router.delete("")

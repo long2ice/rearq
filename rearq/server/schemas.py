@@ -25,6 +25,10 @@ class UpdateJobIn(BaseModel):
     job_retry_after: Optional[int]
 
 
+class CancelJobIn(BaseModel):
+    job_id: str
+
+
 class UpdateTask(BaseModel):
     status: TaskStatus
     task_name: str

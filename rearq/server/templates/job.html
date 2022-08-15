@@ -104,18 +104,46 @@
             }
         }
 
+        function cancel_job(job_id) {
+            let data = {
+                job_id: job_id,
+            }
+            $.ajax({
+                url: '{{ url_for("cancel_job") }}',
+                method: 'PUT',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                dataType: 'json',
+                success: res => {
+                    swal({
+                        title: 'Cancel job success',
+                        icon: "success",
+                    });
+                    table.bootstrapTable('refresh');
+                },
+                error: res => {
+                    swal({
+                        title: res.responseJSON.msg,
+                        icon: "error",
+                    });
+                }
+            })
+        }
+
         function actionsFormatter(value, row) {
             let status = row.status;
             let disabled = 'disabled';
             if (status === 'deferred' || status === 'queued') {
                 disabled = '';
             }
+            let can_cancel = status === 'deferred' || status === 'queued' || status === 'in_progress' ? '' : 'disabled';
             let expire_time = row.expire_time || "";
             if (expire_time !== "") {
                 expire_time = DateTime.fromISO(expire_time).toISO({includeOffset: false});
             }
             return `<button ${disabled} class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#edit-${row.job_id}">Edit
                     </button>
+                    <button ${can_cancel} class="btn btn-warning btn-sm" onclick="cancel_job(${row.job_id})">Cancel</button>
                     <div class="modal fade" id="edit-${row.job_id}" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">

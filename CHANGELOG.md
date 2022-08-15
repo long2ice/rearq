@@ -9,6 +9,7 @@
 - Fix empty kwargs shown.
 - Fix chart when empty data.
 - Server can mount as FastAPI sub app.
+- Add `cancel_job` support.
 
 ### 0.2.7
 
