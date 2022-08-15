@@ -143,7 +143,7 @@
             }
             return `<button ${disabled} class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#edit-${row.job_id}">Edit
                     </button>
-                    <button ${can_cancel} class="btn btn-warning btn-sm" onclick="cancel_job(${row.job_id})">Cancel</button>
+                    <button ${can_cancel} class="btn btn-warning btn-sm" onclick="cancel_job('${row.job_id}')">Cancel</button>
                     <div class="modal fade" id="edit-${row.job_id}" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">
