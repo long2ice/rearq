@@ -99,7 +99,7 @@
                 return `<span class="badge bg-success">${value}</span>`;
             } else if (value === "failed") {
                 return `<span class="badge bg-danger">${value}</span>`;
-            } else if (value === "expired") {
+            } else if (value === "expired" || value === 'canceled') {
                 return `<span class="badge bg-warning">${value}</span>`;
             }
         }
