@@ -12,6 +12,14 @@ to make improvement and include web interface.
 
 You can try [Demo Online](https://demo-rearq.long2ice.io) here.
 
+## Features
+
+- AsyncIO support, easy integration with [FastAPI](https://github.com/tiangolo/fastapi).
+- Delay task, cron task and async task support.
+- Full-featured build-in web interface.
+- Built-in distributed task lock to make same task only run one at the same time.
+- Other powerful features to be discovered.
+
 ## Screenshots
 
 ![dashboard](./images/dashboard.png)
@@ -29,13 +37,13 @@ You can try [Demo Online](https://demo-rearq.long2ice.io) here.
 Use MySQL backend:
 
 ```shell
-> pip install rearq[mysql]
+pip install rearq[mysql]
 ```
 
 Use PostgreSQL backend:
 
 ```shell
-> pip install rearq[postgres]
+pip install rearq[postgres]
 ```
 
 ## Quick Start
