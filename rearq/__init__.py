@@ -41,6 +41,7 @@ class ReArq:
         delay_queue_num: int = 1,
         keep_job_days: Optional[int] = None,
         logs_dir: Optional[str] = os.path.join(constants.WORKER_DIR, "logs"),
+        trace_exception: bool = False,
     ):
         """
         :param db_url: database url
@@ -51,6 +52,7 @@ class ReArq:
         :param job_timeout: Job max timeout.
         :param expire: Job default expire time.
         :param delay_queue_num: How many key to store delay tasks, for large number of tasks, split it to improve performance.
+        :parsm trace_exception: logger task exception
         """
         self.job_timeout = job_timeout
         self.max_jobs = max_jobs
@@ -64,6 +66,7 @@ class ReArq:
         self.keep_job_days = keep_job_days
         self.logs_dir = logs_dir
         self.db_url = db_url
+        self.trace_exception = trace_exception
         self._init()
 
     def _init(self):
@@ -109,6 +112,7 @@ class ReArq:
         job_retry_after: Optional[int] = None,
         expire: Optional[Union[float, datetime.datetime]] = None,
         run_at_start: Optional[bool] = False,
+        run_with_lock: bool = False,
     ):
 
         if not callable(func):
@@ -126,6 +130,7 @@ class ReArq:
             job_retry_after=job_retry_after or self.job_retry_after,
             expire=expire or self.expire,
             bind=bind,
+            run_with_lock=run_with_lock,
         )
         if cron:
             t = CronTask(**defaults, cron=cron, run_at_start=run_at_start)
@@ -147,6 +152,7 @@ class ReArq:
         job_retry_after: Optional[int] = None,
         expire: Optional[Union[float, datetime.datetime]] = None,
         run_at_start: Optional[bool] = False,
+        run_with_lock: bool = False,
     ):
         """
         Task decorator
@@ -158,6 +164,7 @@ class ReArq:
         :param job_retry_after: Override default job retry after.
         :param expire: Override default expire.
         :param run_at_start: Whether run at startup, only available for cron task.
+        :param run_with_lock: Run task with lock, so only one task can run at the same time.
         :return:
         """
         if not cron and run_at_start:
@@ -174,6 +181,7 @@ class ReArq:
                 job_retry_after,
                 expire,
                 run_at_start,
+                run_with_lock,
             )
 
         return wrapper

@@ -12,7 +12,7 @@ from uuid import uuid4
 import async_timeout
 from loguru import logger
 from redis.asyncio.lock import Lock
-from redis.exceptions import ResponseError
+from redis.exceptions import LockError, ResponseError
 from tortoise import timezone
 from tortoise.expressions import F
 
@@ -164,6 +164,7 @@ class Worker:
         elif await task.is_disabled():
             logger.warning(f"task {job.task} is disabled, ignore")
             return
+
         ref = f"{job_id}:{job.task}"
 
         start_ms = timestamp_ms_now()
@@ -176,7 +177,17 @@ class Worker:
                 f" try={job.job_retries}" if job.job_retries > 1 else "",
             )
         )
+        lock = None
         try:
+            if task.run_with_lock:
+                lock = Lock(
+                    self._redis,
+                    name=constants.WORKER_TASK_LOCK.format(task=task.name),
+                    blocking=False,
+                )
+                if not await lock.acquire():
+                    lock = None
+                    raise LockError("Unable to acquire lock within the time specified")
             async with async_timeout.timeout(self.job_timeout):
                 if task.bind:
                     result = await task.function(task, *(job.args or []), **(job.kwargs or {}))
@@ -190,6 +201,8 @@ class Worker:
             self.jobs_complete += 1
 
         except Exception as e:
+            if self.rearq.trace_exception:
+                logger.exception(e)
             job_result.finish_time = timezone.now()
             self.jobs_failed += 1
 
@@ -212,6 +225,8 @@ class Worker:
         finally:
             await self._xack(queue, msg_id)
             await job.save(update_fields=["status", "job_retries"])
+            if lock:
+                await lock.release()
 
         job_result.result = result
         await job_result.save()

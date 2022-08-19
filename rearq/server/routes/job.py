@@ -11,7 +11,7 @@ from rearq.server import templates
 from rearq.server.depends import get_pager, get_rearq, get_redis
 from rearq.server.models import Job, JobResult
 from rearq.server.responses import JobListOut, JobOut
-from rearq.server.schemas import AddJobIn, TaskStatus, UpdateJobIn, CancelJobIn
+from rearq.server.schemas import AddJobIn, CancelJobIn, TaskStatus, UpdateJobIn
 
 router = APIRouter()
 

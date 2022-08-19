@@ -10,6 +10,8 @@ rearq = ReArq(
     redis_url=settings.REDIS_URL,
     delay_queue_num=2,
     keep_job_days=7,
+    expire=60,
+    trace_exception=True,
 )
 
 
@@ -26,6 +28,12 @@ async def on_startup():
 @rearq.task()
 async def add(a, b):
     return a + b
+
+
+@rearq.task(run_with_lock=True)
+async def run_with_lock():
+    await asyncio.sleep(5)
+    return "run_with_lock"
 
 
 @rearq.task()

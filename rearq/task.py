@@ -26,6 +26,7 @@ class Task:
         job_retry: int,
         job_retry_after: int,
         expire: Optional[Union[float, datetime.datetime]] = None,
+        run_with_lock: bool = False,
     ):
 
         self.job_retry = job_retry
@@ -36,6 +37,7 @@ class Task:
         self.bind = bind
         self.expire = expire
         self.name = name
+        self.run_with_lock = run_with_lock
 
     @property
     def is_builtin(self):
@@ -192,8 +194,11 @@ class CronTask(Task):
         cron: str,
         expire: Optional[Union[float, datetime.datetime]] = None,
         run_at_start: Optional[bool] = False,
+        run_with_lock: bool = False,
     ):
-        super().__init__(bind, name, function, queue, rearq, job_retry, job_retry_after, expire)
+        super().__init__(
+            bind, name, function, queue, rearq, job_retry, job_retry_after, expire, run_with_lock
+        )
         self.crontab = CronTab(cron)
         self.cron = cron
         self.run_at_start = run_at_start
