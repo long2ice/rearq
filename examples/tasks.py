@@ -11,6 +11,7 @@ rearq = ReArq(
     delay_queue_num=2,
     keep_job_days=7,
     expire=60,
+    job_retry=0,
     trace_exception=True,
 )
 
