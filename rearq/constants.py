@@ -12,3 +12,4 @@ WORKER_TASK_LOCK = "rearq:task:lock:{task}"
 WORKER_HEARTBEAT_SECONDS = 10
 STATIC_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORKER_DIR = os.getcwd()
+JOB_TIMEOUT_UNLIMITED = object()

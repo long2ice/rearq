@@ -11,7 +11,7 @@ from redis.asyncio.sentinel import Sentinel
 from tortoise import Tortoise
 
 from rearq import constants
-from rearq.constants import DELAY_QUEUE_CHANNEL
+from rearq.constants import DELAY_QUEUE_CHANNEL, JOB_TIMEOUT_UNLIMITED
 from rearq.exceptions import UsageError
 from rearq.server import models
 from rearq.task import CronTask, Task
@@ -129,7 +129,8 @@ class ReArq:
             rearq=self,
             job_retry=job_retry or self.job_retry,
             job_retry_after=job_retry_after or self.job_retry_after,
-            job_timeout=job_timeout or self.job_timeout,
+            job_timeout=(None if job_timeout is JOB_TIMEOUT_UNLIMITED else job_timeout)
+            or self.job_timeout,
             expire=expire or self.expire,
             bind=bind,
             run_with_lock=run_with_lock,
