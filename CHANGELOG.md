@@ -11,6 +11,7 @@
 - Server can mount as FastAPI sub app.
 - Add `cancel_job` support.
 - Add `run_at_start`.
+- Add task `job_timeout`.
 
 ### 0.2.7
 

@@ -188,7 +188,7 @@ class Worker:
                 if not await lock.acquire():
                     lock = None
                     raise LockError("Unable to acquire lock within the time specified")
-            async with async_timeout.timeout(self.job_timeout):
+            async with async_timeout.timeout(task.job_timeout):
                 if task.bind:
                     result = await task.function(task, *(job.args or []), **(job.kwargs or {}))
                 else:

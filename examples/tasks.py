@@ -37,7 +37,7 @@ async def run_with_lock():
     return "run_with_lock"
 
 
-@rearq.task()
+@rearq.task(job_timeout=None)
 async def sleep(time: float):
     return await asyncio.sleep(time)
 

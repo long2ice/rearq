@@ -25,6 +25,7 @@ class Task:
         rearq,
         job_retry: int,
         job_retry_after: int,
+        job_timeout: int,
         expire: Optional[Union[float, datetime.datetime]] = None,
         run_with_lock: bool = False,
         run_at_start: Optional[bool] = False,
@@ -32,6 +33,7 @@ class Task:
 
         self.job_retry = job_retry
         self.job_retry_after = job_retry_after
+        self.job_timeout = job_timeout
         self.queue = queue
         self.rearq = rearq
         self.function = function
@@ -193,6 +195,7 @@ class CronTask(Task):
         rearq,
         job_retry: int,
         job_retry_after: int,
+        job_timeout: int,
         cron: str,
         expire: Optional[Union[float, datetime.datetime]] = None,
         run_with_lock: bool = False,
@@ -206,6 +209,7 @@ class CronTask(Task):
             rearq,
             job_retry,
             job_retry_after,
+            job_timeout,
             expire,
             run_with_lock,
             run_at_start,
