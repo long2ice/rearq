@@ -26,7 +26,7 @@ async def on_startup():
     logger.debug("rearq is startup")
 
 
-@rearq.task()
+@rearq.task(run_at_start=(1, 1))
 async def add(a, b):
     return a + b
 
@@ -42,6 +42,6 @@ async def sleep(time: float):
     return await asyncio.sleep(time)
 
 
-@rearq.task(cron="0 * * * *", run_at_start=True)
+@rearq.task(cron="0 * * * *")
 async def timer_add():
     return "timer"

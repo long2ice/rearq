@@ -320,19 +320,27 @@ class TimerWorker(Worker):
     async def _run_at_start(self):
         jobs = []
         p = self._redis.pipeline()
-        for function, task in CronTask.get_cron_tasks().items():
+        for task_name, task in self.rearq.task_map.items():
             if task.run_at_start and await task.is_enabled():
-                logger.info(f"{function}() <- run at start")
+                args = None
+                kwargs = None
+                if isinstance(task.run_at_start, (tuple, list)):
+                    args = task.run_at_start
+                elif isinstance(task.run_at_start, dict):
+                    kwargs = task.run_at_start
+                logger.info(f"run at start → {task_name}({args_to_string(args, kwargs)})")
                 job_id = uuid4().hex
                 jobs.append(
                     Job(
-                        task=function,
+                        task=task_name,
                         job_retry=self.job_retry,
                         queue=task.queue,
                         job_id=job_id,
                         enqueue_time=timezone.now(),
                         job_retry_after=self.job_retry_after,
                         status=JobStatus.queued,
+                        args=args,
+                        kwargs=kwargs,
                     )
                 )
                 p.xadd(task.queue, {"job_id": job_id})
@@ -376,7 +384,7 @@ class TimerWorker(Worker):
             except asyncio.CancelledError:
                 pass
 
-    async def sub_delay(self):
+    async def subscribe_delay(self):
         """
         Subscribe for delay queue changed
         """
@@ -403,7 +411,7 @@ class TimerWorker(Worker):
 
         await self.log_redis_info()
         await self._run_at_start()
-        asyncio.ensure_future(self.sub_delay())
+        asyncio.ensure_future(self.subscribe_delay())
         while True:
             await self._sleep()
             await self._run_delay()

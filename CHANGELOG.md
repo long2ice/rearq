@@ -10,6 +10,7 @@
 - Fix chart when empty data.
 - Server can mount as FastAPI sub app.
 - Add `cancel_job` support.
+- Add `run_at_start`.
 
 ### 0.2.7
 

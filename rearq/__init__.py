@@ -3,7 +3,7 @@ import datetime
 import hashlib
 import os
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 from redis.asyncio.client import Redis
 from redis.asyncio.connection import ConnectionPool
@@ -111,7 +111,7 @@ class ReArq:
         job_retry: Optional[int] = None,
         job_retry_after: Optional[int] = None,
         expire: Optional[Union[float, datetime.datetime]] = None,
-        run_at_start: Optional[bool] = False,
+        run_at_start: Optional[Union[bool, Tuple, Dict]] = False,
         run_with_lock: bool = False,
     ):
 
@@ -131,9 +131,10 @@ class ReArq:
             expire=expire or self.expire,
             bind=bind,
             run_with_lock=run_with_lock,
+            run_at_start=run_at_start,
         )
         if cron:
-            t = CronTask(**defaults, cron=cron, run_at_start=run_at_start)
+            t = CronTask(**defaults, cron=cron)
             CronTask.add_cron_task(task_name, t)
         else:
             t = Task(**defaults)
@@ -151,7 +152,7 @@ class ReArq:
         job_retry: Optional[int] = None,
         job_retry_after: Optional[int] = None,
         expire: Optional[Union[float, datetime.datetime]] = None,
-        run_at_start: Optional[bool] = False,
+        run_at_start: Optional[Union[bool, Tuple, Dict]] = False,
         run_with_lock: bool = False,
     ):
         """
@@ -163,12 +164,10 @@ class ReArq:
         :param job_retry: Override default job retry.
         :param job_retry_after: Override default job retry after.
         :param expire: Override default expire.
-        :param run_at_start: Whether run at startup, only available for cron task.
-        :param run_with_lock: Run task with lock, so only one task can run at the same time.
+        :param run_at_start: Whether run at startup or not, only work timer worker
+        :param run_with_lock: Run task with redis lock, only one task can run at the same time if enabled.
         :return:
         """
-        if not cron and run_at_start:
-            raise UsageError("run_at_start only work in cron task")
 
         def wrapper(func: Callable):
             return self.create_task(
