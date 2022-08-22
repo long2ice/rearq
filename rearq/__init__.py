@@ -129,8 +129,9 @@ class ReArq:
             rearq=self,
             job_retry=job_retry or self.job_retry,
             job_retry_after=job_retry_after or self.job_retry_after,
-            job_timeout=(None if job_timeout is JOB_TIMEOUT_UNLIMITED else job_timeout)
-            or self.job_timeout,
+            job_timeout=(
+                None if job_timeout is JOB_TIMEOUT_UNLIMITED else (job_timeout or self.job_timeout)
+            ),
             expire=expire or self.expire,
             bind=bind,
             run_with_lock=run_with_lock,
@@ -167,7 +168,7 @@ class ReArq:
         :param name: Task name, default is function name.
         :param job_retry: Override default job retry.
         :param job_retry_after: Override default job retry after.
-        :params: job_timeout: Override default job timeout.
+        :param job_timeout: Override default job timeout.
         :param expire: Override default expire.
         :param run_at_start: Whether run at startup or not, only work timer worker
         :param run_with_lock: Run task with redis lock, only one task can run at the same time if enabled.

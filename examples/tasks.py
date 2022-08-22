@@ -3,7 +3,7 @@ import asyncio
 from loguru import logger
 
 from examples import settings
-from rearq import ReArq
+from rearq import JOB_TIMEOUT_UNLIMITED, ReArq
 
 rearq = ReArq(
     db_url=settings.DB_URL,
@@ -37,7 +37,7 @@ async def run_with_lock():
     return "run_with_lock"
 
 
-@rearq.task(job_timeout=None)
+@rearq.task(job_timeout=JOB_TIMEOUT_UNLIMITED)
 async def sleep(time: float):
     return await asyncio.sleep(time)
 
