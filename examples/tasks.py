@@ -33,7 +33,7 @@ async def add(a, b):
 
 @rearq.task(run_with_lock=True)
 async def run_with_lock():
-    await asyncio.sleep(5)
+    await asyncio.sleep(10)
     return "run_with_lock"
 
 

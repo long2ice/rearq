@@ -1,9 +1,7 @@
 import asyncio
 import json
 import os
-import signal
 import socket
-from functools import partial
 from math import inf
 from signal import Signals
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set
@@ -16,7 +14,7 @@ from redis.exceptions import LockError, ResponseError
 from tortoise import timezone
 from tortoise.expressions import F
 
-from rearq import CronTask, UsageError, constants
+from rearq import CronTask, UsageError, constants, signals
 from rearq.constants import DEFAULT_QUEUE, DELAY_QUEUE, DELAY_QUEUE_CHANNEL, QUEUE_KEY_PREFIX
 from rearq.enums import JobStatus
 from rearq.server.models import Job, JobResult
@@ -30,8 +28,6 @@ Deserializer = Callable[[bytes], Dict[str, Any]]
 
 
 class Worker:
-    _task_map = {}
-
     def __init__(
         self,
         rearq: "ReArq",
@@ -57,35 +53,34 @@ class Worker:
         self.loop = asyncio.get_event_loop()
         self.sem = asyncio.BoundedSemaphore(self.max_jobs)
         self.queue_read_limit = max(self.max_jobs * 5, 100)
-        self.tasks: Set[asyncio.Task[Any]] = set()
+        self._tasks: Set[asyncio.Task[Any]] = set()
         self._task_map = rearq.task_map
         self.jobs_complete = 0
         self.jobs_retried = 0
         self.jobs_failed = 0
         self.job_retry = rearq.job_retry
         self.job_retry_after = rearq.job_retry_after
-        self._add_signal_handler(signal.SIGINT, self.handle_sig)
-        self._add_signal_handler(signal.SIGTERM, self.handle_sig)
+        self._terminated = False
+        self._real_tasks = []
+        signals.add_sig_handler(self._handle_sig)
 
-    def _add_signal_handler(self, signum: Signals, handler: Callable[[Signals], None]) -> None:
-        self.loop.add_signal_handler(signum, partial(handler, signum))
-
-    def handle_sig(self, signum: Signals) -> None:
+    def _handle_sig(self, signum: Signals) -> None:
+        self._terminated = True
         sig = Signals(signum)
         logger.info(
-            "shutdown on %s ◆ %d jobs complete ◆ %d failed ◆ %d retries ◆ %d ongoing to cancel"
+            f"shutdown worker {self.worker_name} on %s ◆ %d jobs complete ◆ %d failed ◆ %d retries ◆ %d ongoing to cancel"
             % (
                 sig.name,
                 self.jobs_complete,
                 self.jobs_failed,
                 self.jobs_retried,
-                len(self.tasks),
+                len(self._tasks),
             )
         )
-        for t in asyncio.all_tasks():
+        for t in self._real_tasks:
             t.cancel()
 
-    async def log_redis_info(
+    async def _log_redis_info(
         self,
     ) -> None:
         p = self._redis.pipeline()
@@ -103,8 +98,8 @@ class Worker:
         logger.add(f"{self.rearq.logs_dir}/worker-{self.worker_name}.log", rotation="00:00")
         logger.success(f"Start worker success with queue: {','.join(self.queues)}")
         logger.info(f"Registered tasks: {', '.join(self.register_tasks)}")
-        await self.log_redis_info()
-        while True:
+        await self._log_redis_info()
+        while not self._terminated:
             msgs = await self._redis.xreadgroup(
                 self.group_name,
                 self.consumer_name,
@@ -133,18 +128,18 @@ class Worker:
                         logger.warning(f"job {job_id} not found")
                         await self._xack(queue, msg_id)
                         continue
-                    task = asyncio.ensure_future(self.run_job(queue, msg_id, job))
+                    task = asyncio.ensure_future(self._run_job(queue, msg_id, job))
                     task.add_done_callback(self._task_done)
-                    self.tasks.add(task)
+                    self._tasks.add(task)
 
     def _task_done(self, task):
         self.sem.release()
-        self.tasks.remove(task)
+        self._tasks.remove(task)
 
     async def _xack(self, queue: str, msg_id: str):
         await self._redis.xack(queue, self.group_name, msg_id)
 
-    async def run_job(self, queue: str, msg_id: str, job: Job):
+    async def _run_job(self, queue: str, msg_id: str, job: Job):
         await self.sem.acquire()
         if job.expire_time and job.expire_time < timezone.now():
             logger.warning(f"job {job.job_id} is expired, ignore")
@@ -190,9 +185,16 @@ class Worker:
                     raise LockError("Unable to acquire lock within the time specified")
             async with async_timeout.timeout(task.job_timeout):
                 if task.bind:
-                    result = await task.function(task, *(job.args or []), **(job.kwargs or {}))
+                    real_task = asyncio.create_task(
+                        task.function(task, *(job.args or []), **(job.kwargs or {}))
+                    )
                 else:
-                    result = await task.function(*(job.args or []), **(job.kwargs or {}))
+                    real_task = asyncio.create_task(
+                        task.function(*(job.args or []), **(job.kwargs or {}))
+                    )
+                self._real_tasks.append(real_task)
+                real_task.add_done_callback(lambda x: self._real_tasks.remove(x))
+                result = await real_task
 
             job_result.success = True
             job_result.finish_time = timezone.now()
@@ -201,8 +203,11 @@ class Worker:
             self.jobs_complete += 1
 
         except Exception as e:
-            if self.rearq.trace_exception:
-                logger.exception(e)
+            if isinstance(e, asyncio.CancelledError):
+                e = "asyncio.CancelledError"
+            else:
+                if self.rearq.trace_exception:
+                    logger.exception(e)
             job_result.finish_time = timezone.now()
             self.jobs_failed += 1
 
@@ -263,7 +268,7 @@ class Worker:
         """
         keep alive in redis
         """
-        while True:
+        while not self._terminated:
             await self._push_heartbeat()
             await asyncio.sleep(constants.WORKER_HEARTBEAT_SECONDS)
 
@@ -306,6 +311,12 @@ class TimerWorker(Worker):
         self.rearq.create_task(check_pending_msgs, True, self.queue, "* * * * *")
         if rearq.keep_job_days:
             self.rearq.create_task(check_keep_job, True, self.queue, "0 4 * * *")
+
+    def _handle_sig(self, signum: Signals) -> None:
+        self._terminated = True
+        self.sleep_task.cancel()
+        sig = Signals(signum)
+        logger.info(f"shutdown timer {self.worker_name} on %s" % (sig.name,))
 
     async def run(self):
         logger.info(
@@ -409,10 +420,10 @@ class TimerWorker(Worker):
         logger.add(f"{self.rearq.logs_dir}/worker-{self.worker_name}.log", rotation="00:00")
         logger.info(f"Registered timer tasks: {', '.join(tasks)}")
 
-        await self.log_redis_info()
+        await self._log_redis_info()
         await self._run_at_start()
         asyncio.ensure_future(self.subscribe_delay())
-        while True:
+        while not self._terminated:
             await self._sleep()
             await self._run_delay()
             await self._run_cron()
