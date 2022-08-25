@@ -13,6 +13,7 @@
 - Add `run_at_start`.
 - Add task `job_timeout`.
 - Improve graceful exit mechanism.
+- Improve cancel task and disable task.
 
 ### 0.2.7
 

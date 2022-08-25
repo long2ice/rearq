@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import hashlib
+import json
 import os
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
@@ -11,7 +12,8 @@ from redis.asyncio.sentinel import Sentinel
 from tortoise import Tortoise
 
 from rearq import constants
-from rearq.constants import DELAY_QUEUE_CHANNEL, JOB_TIMEOUT_UNLIMITED
+from rearq.constants import CHANNEL, JOB_TIMEOUT_UNLIMITED
+from rearq.enums import ChannelType
 from rearq.exceptions import UsageError
 from rearq.server import models
 from rearq.task import CronTask, Task
@@ -254,4 +256,6 @@ class ReArq:
         return await self.redis.zadd(queue, mapping={data: score})
 
     async def pub_delay(self, ms: float):
-        return await self.redis.publish(DELAY_QUEUE_CHANNEL, ms)
+        return await self.redis.publish(
+            CHANNEL, json.dumps({"type": ChannelType.delay_changed, "ms": ms})
+        )

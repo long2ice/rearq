@@ -8,8 +8,8 @@ from loguru import logger
 from tortoise import timezone
 
 from rearq import constants
-from rearq.constants import WORKER_KEY
-from rearq.enums import JobStatus
+from rearq.constants import CHANNEL, WORKER_KEY
+from rearq.enums import ChannelType, JobStatus
 from rearq.server.models import Job, JobResult
 from rearq.server.schemas import TaskStatus
 from rearq.utils import ms_to_datetime, timestamp_ms_now, to_ms_timestamp
@@ -42,16 +42,24 @@ class Task:
         self.name = name
         self.run_with_lock = run_with_lock
         self.run_at_start = run_at_start
+        self.redis = rearq.redis
 
     @property
     def is_builtin(self):
         return self.name in [check_pending_msgs.__name__, check_keep_job.__name__]
 
     async def enable(self):
-        return await self.rearq.redis.hset(constants.TASK_KEY, self.name, TaskStatus.enabled)
+        await self.redis.hset(constants.TASK_KEY, self.name, TaskStatus.enabled)
+
+    async def cancel(self, job_id: str = None):
+        await self.redis.publish(
+            CHANNEL,
+            json.dumps({"type": ChannelType.cancel_task, "task_name": self.name, "job_id": job_id}),
+        )
 
     async def disable(self):
-        return await self.rearq.redis.hset(constants.TASK_KEY, self.name, TaskStatus.disabled)
+        await self.cancel()
+        await self.redis.hset(constants.TASK_KEY, self.name, TaskStatus.disabled)
 
     async def is_enabled(self):
         status = await self.rearq.redis.hget(constants.TASK_KEY, self.name)

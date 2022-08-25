@@ -21,3 +21,8 @@ class TaskStatus(str, Enum):
 
     def __str__(self):
         return self.value
+
+
+class ChannelType(str, Enum):
+    cancel_task = "cancel_task"
+    delay_changed = "delay_changed"

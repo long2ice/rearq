@@ -74,11 +74,15 @@ async def update_job(update_job_in: UpdateJobIn):
 
 
 @router.put("/cancel")
-async def cancel_job(cancel_job_in: CancelJobIn):
+async def cancel_job(cancel_job_in: CancelJobIn, rearq: ReArq = Depends(get_rearq)):
     job = await Job.get_or_none(job_id=cancel_job_in.job_id)
     if not job:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Can't find job")
     if job.status in [JobStatus.queued, JobStatus.deferred, JobStatus.in_progress]:
+        task_map = rearq.task_map
+        task = task_map.get(job.task)
+        if task:
+            await task.cancel(job.job_id)
         job.status = JobStatus.canceled
         await job.save(update_fields=["status"])
     else:

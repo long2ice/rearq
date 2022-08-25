@@ -4,7 +4,7 @@ import os
 import socket
 from math import inf
 from signal import Signals
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tuple
 from uuid import uuid4
 
 import async_timeout
@@ -15,8 +15,8 @@ from tortoise import timezone
 from tortoise.expressions import F
 
 from rearq import CronTask, UsageError, constants, signals
-from rearq.constants import DEFAULT_QUEUE, DELAY_QUEUE, DELAY_QUEUE_CHANNEL, QUEUE_KEY_PREFIX
-from rearq.enums import JobStatus
+from rearq.constants import CHANNEL, DEFAULT_QUEUE, DELAY_QUEUE, QUEUE_KEY_PREFIX
+from rearq.enums import ChannelType, JobStatus
 from rearq.server.models import Job, JobResult
 from rearq.task import check_keep_job, check_pending_msgs
 from rearq.utils import args_to_string, ms_to_datetime, timestamp_ms_now, to_ms_timestamp
@@ -54,6 +54,7 @@ class Worker:
         self.sem = asyncio.BoundedSemaphore(self.max_jobs)
         self.queue_read_limit = max(self.max_jobs * 5, 100)
         self._tasks: Set[asyncio.Task[Any]] = set()
+        self._running_tasks_map: Dict[str, List[Tuple[str, asyncio.Task[Any]]]] = {}
         self._task_map = rearq.task_map
         self.jobs_complete = 0
         self.jobs_retried = 0
@@ -61,7 +62,6 @@ class Worker:
         self.job_retry = rearq.job_retry
         self.job_retry_after = rearq.job_retry_after
         self._terminated = False
-        self._real_tasks = []
         signals.add_sig_handler(self._handle_sig)
 
     def _handle_sig(self, signum: Signals) -> None:
@@ -77,8 +77,9 @@ class Worker:
                 len(self._tasks),
             )
         )
-        for t in self._real_tasks:
-            t.cancel()
+        for tasks in self._running_tasks_map.values():
+            for t in tasks:
+                t[1].cancel()
 
     async def _log_redis_info(
         self,
@@ -99,6 +100,7 @@ class Worker:
         logger.success(f"Start worker success with queue: {','.join(self.queues)}")
         logger.info(f"Registered tasks: {', '.join(self.register_tasks)}")
         await self._log_redis_info()
+        asyncio.ensure_future(self._subscribe_channel())
         while not self._terminated:
             msgs = await self._redis.xreadgroup(
                 self.group_name,
@@ -192,8 +194,10 @@ class Worker:
                     real_task = asyncio.create_task(
                         task.function(*(job.args or []), **(job.kwargs or {}))
                     )
-                self._real_tasks.append(real_task)
-                real_task.add_done_callback(lambda x: self._real_tasks.remove(x))
+                self._running_tasks_map.setdefault(task.name, []).append((job_id, real_task))
+                real_task.add_done_callback(
+                    lambda x: self._running_tasks_map[task.name].remove((job_id, x))
+                )
                 result = await real_task
 
             job_result.success = True
@@ -271,6 +275,27 @@ class Worker:
         while not self._terminated:
             await self._push_heartbeat()
             await asyncio.sleep(constants.WORKER_HEARTBEAT_SECONDS)
+
+    async def _subscribe_channel(self):
+        """
+        Subscribe for task cancel and disable
+        """
+        channel = self._redis.pubsub()
+        await channel.subscribe(CHANNEL)
+        async for msg in channel.listen():
+            msg_type = msg["type"]
+            if msg_type != "message":
+                continue
+            data = json.loads(msg["data"])
+            if data["type"] != ChannelType.cancel_task:
+                continue
+            task_name = data["task_name"]
+            job_id = data["job_id"]
+            for name, tasks in self._running_tasks_map.items():
+                if name == task_name:
+                    for task in tasks:
+                        if not job_id or (job_id and job_id == task[0]):
+                            task[1].cancel()
 
     async def _pre_run(self):
         try:
@@ -395,17 +420,20 @@ class TimerWorker(Worker):
             except asyncio.CancelledError:
                 pass
 
-    async def subscribe_delay(self):
+    async def _subscribe_channel(self):
         """
         Subscribe for delay queue changed
         """
         channel = self._redis.pubsub()
-        await channel.subscribe(DELAY_QUEUE_CHANNEL)
+        await channel.subscribe(CHANNEL)
         async for msg in channel.listen():
             msg_type = msg["type"]
             if msg_type != "message":
                 continue
-            task_ms = float(msg["data"])
+            data = json.loads(msg["data"])
+            if data["type"] != ChannelType.delay_changed:
+                continue
+            task_ms = float(data["ms"])
             if self.sleep_until and task_ms < self.sleep_until:  # type:ignore
                 self.sleep_task.cancel()  # type:ignore
                 self.sleep_task = None
@@ -422,7 +450,7 @@ class TimerWorker(Worker):
 
         await self._log_redis_info()
         await self._run_at_start()
-        asyncio.ensure_future(self.subscribe_delay())
+        asyncio.ensure_future(self._subscribe_channel())
         while not self._terminated:
             await self._sleep()
             await self._run_delay()
