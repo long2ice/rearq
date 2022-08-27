@@ -261,7 +261,7 @@
         }
 
         function jobIdFormatter(value, row) {
-            return `<a class="text-decoration-none" href="{{ url_for('job_result') }}?job_id=${value}">${value}</a>`;
+            return `<a class="text-decoration-none" href="{{ url_for("job_result_page") }}?job_id=${value}">${value}</a>`;
         }
 
         $(function () {

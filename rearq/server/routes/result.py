@@ -46,7 +46,7 @@ async def delete_result(ids: str):
 
 
 @router.get("", include_in_schema=False)
-async def job_result(
+async def job_result_page(
     request: Request,
     redis: Redis = Depends(get_redis),
     rearq: ReArq = Depends(get_rearq),

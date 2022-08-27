@@ -4,7 +4,7 @@
     Run
 </button>
 <a class="btn btn-secondary btn-sm" href="{{ url_for("job_page") }}?task={{ task.name }}">Job</a>
-<a class="btn btn-dark btn-sm" href="{{ url_for("job_result") }}?task={{ task.name }}">Result</a>
+<a class="btn btn-dark btn-sm" href="{{ url_for("job_result_page") }}?task={{ task.name }}">Result</a>
 <button onclick="set_task('{{ task.name }}','{{ task.status }}')"
         class="btn btn-sm {% if task.status == "enabled" %}btn-warning{% else %}btn-success{% endif %}">
     {% if task.status == "enabled" %}
