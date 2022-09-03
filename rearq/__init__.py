@@ -219,15 +219,13 @@ class ReArq:
         if tasks:
             await asyncio.gather(*tasks)
 
-    async def _init_db(self):
+    async def init(self, generate_schemas=False):
         await Tortoise.init(
             db_url=self.db_url,
             modules={"rearq": [models]},
         )
-        await Tortoise.generate_schemas()
-
-    async def init(self):
-        await self._init_db()
+        if generate_schemas:
+            await Tortoise.generate_schemas()
 
     async def startup(self):
         tasks = []
