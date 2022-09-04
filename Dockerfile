@@ -6,7 +6,7 @@ COPY pyproject.toml poetry.lock /rearq/
 ENV POETRY_VIRTUALENVS_CREATE false
 RUN pip3 install poetry && poetry install --no-root -E mysql -E postgres
 COPY . /rearq
-RUN poetry install
+RUN poetry install -E mysql -E postgres
 
 FROM python:3.9-slim
 WORKDIR /rearq
