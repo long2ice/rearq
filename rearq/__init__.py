@@ -7,6 +7,7 @@ from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 from redis.asyncio.client import Redis
+from redis.asyncio.cluster import ClusterNode, RedisCluster
 from redis.asyncio.connection import ConnectionPool
 from redis.asyncio.sentinel import Sentinel
 from tortoise import Tortoise
@@ -35,6 +36,7 @@ class ReArq:
         redis_url: str = "redis://localhost:6379/0",
         sentinels: Optional[List[str]] = None,
         sentinel_master: str = "master",
+        cluster_nodes: Optional[List[str]] = None,
         job_retry: int = 3,
         job_retry_after: int = 60,
         max_jobs: int = 10,
@@ -48,7 +50,10 @@ class ReArq:
         """
         :param db_url: database url
         :param sentinel_master:
-        :param job_retry: Default job retry times.
+        :param sentinels: list of sentinel nodes
+        :param redis_url: redis url
+        :param cluster_nodes: list of cluster nodes
+        :param job_retry: number of retries for failed jobs
         :param job_retry_after: Default job retry after seconds.
         :param max_jobs: Max concurrent jobs.
         :param job_timeout: Job max timeout.
@@ -63,6 +68,7 @@ class ReArq:
         self.expire = expire
         self.sentinels = sentinels
         self.sentinel_master = sentinel_master
+        self.cluster_nodes = cluster_nodes
         self.redis_url = redis_url
         self.delay_queue_num = delay_queue_num
         self.keep_job_days = keep_job_days
@@ -78,7 +84,9 @@ class ReArq:
         if self.sentinels:
             sentinel = Sentinel(self.sentinels, decode_responses=True)
             redis = sentinel.master_for(self.sentinel_master)
-
+        elif self.cluster_nodes:
+            cluster_nodes = [ClusterNode(*node.split(":")) for node in self.cluster_nodes]
+            redis = RedisCluster(startup_nodes=cluster_nodes, decode_responses=True)
         else:
             pool = ConnectionPool.from_url(
                 self.redis_url,

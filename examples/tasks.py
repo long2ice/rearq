@@ -7,7 +7,7 @@ from rearq import JOB_TIMEOUT_UNLIMITED, ReArq
 
 rearq = ReArq(
     db_url=settings.DB_URL,
-    redis_url=settings.REDIS_URL,
+    cluster_nodes=settings.REDIS_CLUSTER_NODES.split(","),
     delay_queue_num=2,
     keep_job_days=7,
     expire=60,
