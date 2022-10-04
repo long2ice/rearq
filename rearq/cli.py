@@ -29,21 +29,25 @@ def coro(f):
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.version_option(VERSION, "-v", "--version")
 @click.option("--verbose", default=False, is_flag=True, help="Enable verbose output.")
+@click.option(
+    "-g", "--generate-schemas", default=False, is_flag=True, help="Generate database schemas."
+)
 @click.argument("rearq", required=True)
 @click.pass_context
 @coro
-async def cli(ctx: Context, rearq: str, verbose):
+async def cli(ctx: Context, rearq: str, verbose: bool, generate_schemas: bool):
     splits = rearq.split(":")
     rearq_path = splits[0]
     rearq = splits[1]
     try:
         module = importlib.import_module(rearq_path)
         r = getattr(module, rearq, None)  # type:ReArq
-        await r.init()
+        await r.init(generate_schemas=generate_schemas)
         await r.startup()
         ctx.ensure_object(dict)
         ctx.obj["rearq"] = r
         ctx.obj["verbose"] = verbose
+        ctx.obj["generate_schemas"] = generate_schemas
 
     except (ModuleNotFoundError, AttributeError) as e:
         raise BadArgumentUsage(ctx=ctx, message=f"Init rearq error, {e}.")
@@ -94,10 +98,11 @@ def server(ctx: Context):
     app.set_rearq(rearq)
 
     verbose = ctx.obj["verbose"]
+    generate_schemas = ctx.obj["generate_schemas"]
 
     @app.on_event("startup")
     async def startup():
-        await rearq.init()
+        await rearq.init(generate_schemas=generate_schemas)
 
     @app.on_event("shutdown")
     async def shutdown():
