@@ -28,7 +28,4 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
-          script: |
-            cd /root/docker/rearq/
-            docker compose pull
-            docker compose up -d
+          script: kubectl rollout restart deployment rearq
