@@ -7,7 +7,6 @@ from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 from redis.asyncio.client import Redis
-from redis.asyncio.cluster import ClusterNode, RedisCluster
 from redis.asyncio.connection import ConnectionPool
 from redis.asyncio.sentinel import Sentinel
 from tortoise import Tortoise
@@ -45,6 +44,7 @@ class ReArq:
         keep_job_days: Optional[int] = None,
         logs_dir: Optional[str] = os.path.join(constants.WORKER_DIR, "logs"),
         trace_exception: bool = False,
+        generate_schemas: bool = False,
     ):
         """
         :param db_url: database url
@@ -56,8 +56,9 @@ class ReArq:
         :param max_jobs: Max concurrent jobs.
         :param job_timeout: Job max timeout.
         :param expire: Job default expire time.
-        :param delay_queue_num: How many key to store delay tasks, for large number of tasks, split it to improve performance.
-        :parsm trace_exception: logger task exception
+        :param delay_queue_num: How many key to store delay tasks
+        :param trace_exception: logger task exception
+        :param generate_schemas: generate database schemas
         """
         self.job_timeout = job_timeout
         self.max_jobs = max_jobs
@@ -72,6 +73,7 @@ class ReArq:
         self.logs_dir = logs_dir
         self.db_url = db_url
         self.trace_exception = trace_exception
+        self.generate_schemas = generate_schemas
         self._init()
 
     def _init(self):
@@ -168,14 +170,14 @@ class ReArq:
         Task decorator
         :param bind: Bind task obj to first argument.
         :param queue: Default queue.
-        :param cron: See https://github.com/josiahcarlson/parse-crontab, if defined, which is a cron task.
+        :param cron: See https://github.com/josiahcarlson/parse-crontab
         :param name: Task name, default is function name.
         :param job_retry: Override default job retry.
         :param job_retry_after: Override default job retry after.
         :param job_timeout: Override default job timeout.
         :param expire: Override default expire.
         :param run_at_start: Whether run at startup or not, only work timer worker
-        :param run_with_lock: Run task with redis lock, only one task can run at the same time if enabled.
+        :param run_with_lock: Run task with redis lock
         :return:
         """
 
@@ -221,12 +223,12 @@ class ReArq:
         if tasks:
             await asyncio.gather(*tasks)
 
-    async def init(self, generate_schemas=False):
+    async def init(self):
         await Tortoise.init(
             db_url=self.db_url,
             modules={"rearq": [models]},
         )
-        if generate_schemas:
+        if self.generate_schemas:
             await Tortoise.generate_schemas()
 
     async def startup(self):

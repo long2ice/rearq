@@ -68,7 +68,8 @@ class Worker:
         self._terminated = True
         sig = Signals(signum)
         logger.info(
-            f"shutdown worker {self.worker_name} on %s ◆ %d jobs complete ◆ %d failed ◆ %d retries ◆ %d ongoing to cancel"
+            f"shutdown worker {self.worker_name} on %s ◆ %d jobs complete ◆ %d "
+            f"failed ◆ %d retries ◆ %d ongoing to cancel"
             % (
                 sig.name,
                 self.jobs_complete,
@@ -224,7 +225,10 @@ class Worker:
                 logger.error("%6.2fs ! %s max retries %d exceeded" % (t, ref, job.job_retry))
                 job.status = JobStatus.failed
             else:
-                result = f"Run job error in NO.{job.job_retries} times, exc: {e}, retry after {self.job_retry_after} seconds"
+                result = (
+                    f"Run job error in NO.{job.job_retries} times,"
+                    f" exc: {e}, retry after {self.job_retry_after} seconds"
+                )
                 logger.error(
                     "%6.2fs ← %s ● %s" % ((timestamp_ms_now() - start_ms) / 1000, ref, result)
                 )
@@ -351,7 +355,7 @@ class TimerWorker(Worker):
             self._redis,
             name=constants.WORKER_KEY_TIMER_LOCK,
         ):
-            await super(TimerWorker, self).run()
+            await super().run()
 
     async def _run_at_start(self):
         jobs = []
@@ -466,8 +470,10 @@ class TimerWorker(Worker):
                     timezone.now() - time
                 ).seconds > constants.WORKER_HEARTBEAT_SECONDS + 10
                 if value.get("is_timer") and not is_offline:
-                    msg = f"There is a timer worker `{worker_name}` already, you can only start one timer worker"
-
+                    msg = (
+                        f"There is a timer worker `{worker_name}` already, "
+                        f"you can only start one timer worker"
+                    )
                     logger.error(msg)
                     raise UsageError(msg)
             else:

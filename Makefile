@@ -14,8 +14,8 @@ style: deps
 
 check: deps
 	black --check $(black_opts) $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
-	ruff $(checkfiles)
-	bandit -x tests -r $(checkfiles)
+	ruff --fix $(checkfiles)
+	#mypy $(checkfiles)
 
 test: deps
 	$(py_warn) pytest

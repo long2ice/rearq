@@ -32,7 +32,7 @@ isort = "*"
 black = "*"
 pytest = "*"
 pytest-xdist = "*"
-bandit = "*"
+mypy = "*"
 pytest-asyncio = "*"
 cryptography = "*"
 types-redis = "*"
@@ -60,4 +60,4 @@ pretty = true
 ignore_missing_imports = true
 
 [tool.ruff]
-ignore = 'E501,W503,E203'
+line-length = 100

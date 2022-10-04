@@ -2,6 +2,10 @@
 
 ## 0.2
 
+### 0.2.9
+
+- Add `generate_schemas` parameter to `rearq.__init__`.
+
 ### 0.2.8
 
 - Add `-t` flat to worker command to start timer together.
