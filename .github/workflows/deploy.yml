@@ -22,10 +22,8 @@ jobs:
       - build
     steps:
       - name: Deploy
-        uses: appleboy/ssh-action@master
+        uses: actions-hub/kubectl@master
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
-          port: ${{ secrets.PORT }}
-          script: kubectl rollout restart deployment rearq
+          args: rollout restart deployment rearq
