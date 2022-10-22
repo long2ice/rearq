@@ -22,8 +22,13 @@ jobs:
       - build
     steps:
       - name: Deploy
-        uses: actions-hub/kubectl@master
-        env:
-          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        uses: appleboy/ssh-action@master
         with:
-          args: rollout restart deployment rearq
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            cd /root/docker/rearq/
+            docker compose pull
+            docker compose up -d
