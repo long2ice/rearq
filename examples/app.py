@@ -24,7 +24,7 @@ rearq_app.set_rearq(rearq)
 
 @app.on_event("startup")
 async def startup():
-    await rearq.init(generate_schemas=True)
+    await rearq.init()
 
 
 @app.on_event("shutdown")

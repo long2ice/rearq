@@ -163,15 +163,14 @@ class Worker:
             logger.warning(f"task {job.task} is disabled, ignore")
             return
 
-        ref = f"{job_id}:{job.task}"
+        ref = f"{job_id}:{job.task}({args_to_string(job.args, job.kwargs)})"
 
         start_ms = timestamp_ms_now()
         logger.info(
-            "%6.2fs → %s(%s)%s"
+            "%6.2fs → %s%s"
             % (
                 (start_ms - to_ms_timestamp(job.enqueue_time)) / 1000,
                 ref,
-                args_to_string(job.args, job.kwargs),
                 f" try={job.job_retries}" if job.job_retries > 1 else "",
             )
         )
