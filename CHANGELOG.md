@@ -5,6 +5,7 @@
 ### 0.2.9
 
 - Add `generate_schemas` parameter to `rearq.__init__`.
+- Add `App.start_worker` to start worker inside app.
 
 ### 0.2.8
 

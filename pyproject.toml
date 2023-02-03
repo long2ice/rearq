@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rearq"
-version = "0.2.8"
+version = "0.2.9"
 description = "A distributed task queue built with asyncio and redis, with built-in web interface"
 authors = ["long2ice <long2ice@gmail.com>"]
 license = "Apache-2.0"
