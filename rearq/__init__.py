@@ -121,7 +121,6 @@ class ReArq:
         run_at_start: Optional[Union[bool, Tuple, Dict]] = False,
         run_with_lock: bool = False,
     ):
-
         if not callable(func):
             raise UsageError("Task must be Callable!")
 

@@ -1,3 +1,4 @@
+
 import uvicorn
 from fastapi import FastAPI
 from tortoise.contrib.fastapi import register_tortoise
@@ -25,6 +26,7 @@ rearq_app.set_rearq(rearq)
 @app.on_event("startup")
 async def startup():
     await rearq.init()
+    await rearq_app.start_worker(with_timer=True, block=False)
 
 
 @app.on_event("shutdown")

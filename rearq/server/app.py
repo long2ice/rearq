@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from fastapi import FastAPI, HTTPException
@@ -5,8 +6,9 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 
-from .. import ReArq, constants
-from .routes import router
+from rearq import ReArq, constants
+from rearq.server.routes import router
+from rearq.worker import TimerWorker, Worker
 
 
 class App(FastAPI):
@@ -16,6 +18,18 @@ class App(FastAPI):
 
     def set_rearq(self, rearq: ReArq):
         self.rearq = rearq
+
+    async def start_worker(self, with_timer=False, block=True):
+        w = Worker(rearq=self.rearq)
+        if with_timer:
+            t = TimerWorker(rearq=self.rearq)
+            runner = asyncio.gather(w.run(), t.run())
+        else:
+            runner = w.run()
+        if block:
+            await runner
+        else:
+            asyncio.ensure_future(runner)
 
 
 app = App(title="API docs of ReArq")

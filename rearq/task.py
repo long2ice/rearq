@@ -30,7 +30,6 @@ class Task:
         run_with_lock: bool = False,
         run_at_start: Optional[bool] = False,
     ):
-
         self.job_retry = job_retry
         self.job_retry_after = job_retry_after
         self.job_timeout = job_timeout

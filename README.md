@@ -180,6 +180,18 @@ app.mount("/rearq", rearq_app)
 rearq_app.set_rearq(rearq)
 ```
 
+### Start worker inside app
+
+You can also start worker inside your app.
+
+```python
+@app.on_event("startup")
+async def startup():
+    await rearq.init()
+    await rearq_app.start_worker(with_timer=True, block=False)
+```
+
+```shell
 ## ThanksTo
 
 - [arq](https://github.com/samuelcolvin/arq), Fast job queuing and RPC in python with asyncio and redis.
