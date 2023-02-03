@@ -191,7 +191,6 @@ async def startup():
     await rearq_app.start_worker(with_timer=True, block=False)
 ```
 
-```shell
 ## ThanksTo
 
 - [arq](https://github.com/samuelcolvin/arq), Fast job queuing and RPC in python with asyncio and redis.
