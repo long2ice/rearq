@@ -19,7 +19,7 @@ class App(FastAPI):
     def set_rearq(self, rearq: ReArq):
         self.rearq = rearq
 
-    async def start_worker(self, with_timer=False, block=True):
+    async def start_worker(self, with_timer=False, block=False):
         w = Worker(rearq=self.rearq)
         if with_timer:
             t = TimerWorker(rearq=self.rearq)
