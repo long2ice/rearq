@@ -21,8 +21,10 @@ class App(FastAPI):
 
     async def start_worker(self, with_timer=False, block=False):
         w = Worker(rearq=self.rearq)
+        self.rearq.on_shutdown(w.terminate)
         if with_timer:
             t = TimerWorker(rearq=self.rearq)
+            self.rearq.on_shutdown(t.terminate)
             runner = asyncio.gather(w.run(), t.run())
         else:
             runner = w.run()

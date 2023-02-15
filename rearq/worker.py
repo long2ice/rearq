@@ -64,8 +64,11 @@ class Worker:
         self._terminated = False
         signals.add_sig_handler(self._handle_sig)
 
-    def _handle_sig(self, signum: Signals) -> None:
+    async def terminate(self):
         self._terminated = True
+
+    def _handle_sig(self, signum: Signals) -> None:
+        self.terminate()
         sig = Signals(signum)
         logger.info(
             f"shutdown worker {self.worker_name} on %s ◆ %d jobs complete ◆ %d "
@@ -526,8 +529,10 @@ class TimerWorker(Worker):
         p = redis.pipeline()
         for queue in self.rearq.delay_queues:
             p.zrangebyscore(queue, start=0, num=self.queue_read_limit, max=now, min=-1)
-        jobs_id_list = await p.execute()
-        p = redis.pipeline()
+        try:
+            jobs_id_list = await p.execute()
+        except ResponseError:
+            return
         for jobs_id_info in jobs_id_list:
             for job_id_info in jobs_id_info:
                 separate = job_id_info.rindex(":")
