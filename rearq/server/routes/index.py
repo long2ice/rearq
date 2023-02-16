@@ -1,4 +1,5 @@
 import datetime
+from typing import Optional
 
 from fastapi import APIRouter, Depends
 from pypika.functions import Date
@@ -18,7 +19,12 @@ class ToDate(Function):
 
 
 @router.get("/", include_in_schema=False)
-async def index(request: Request, rearq: ReArq = Depends(get_rearq), redis=Depends(get_redis)):
+async def index(
+    request: Request,
+    rearq: ReArq = Depends(get_rearq),
+    redis=Depends(get_redis),
+    task: Optional[str] = None,
+):
     task_map = rearq.task_map
     task_num = len(task_map)
     workers_info = await redis.hgetall(constants.WORKER_KEY)
@@ -26,9 +32,12 @@ async def index(request: Request, rearq: ReArq = Depends(get_rearq), redis=Depen
     run_times = await JobResult.all().count()
     end_date = datetime.datetime.today()
     start_date = end_date - datetime.timedelta(days=30)
+    filters = dict(date__gt=start_date)
+    if task:
+        filters["task"] = task
     result = (
         await Job.annotate(count=Count("id"), date=ToDate("enqueue_time"))
-        .filter(date__gt=start_date)
+        .filter(**filters)
         .group_by("date", "status")
         .order_by("date")
         .values("date", "status", "count")
@@ -114,5 +123,7 @@ async def index(request: Request, rearq: ReArq = Depends(get_rearq), redis=Depen
             "run_times": run_times,
             "x_axis": x_axis,
             "series": series,
+            "tasks": task_map.keys(),
+            "task": task,
         },
     )

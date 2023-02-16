@@ -10,6 +10,7 @@ from tortoise import timezone
 from rearq import constants
 from rearq.constants import CHANNEL, WORKER_KEY
 from rearq.enums import ChannelType, JobStatus
+from rearq.exceptions import TaskDisabledError
 from rearq.server.models import Job, JobResult
 from rearq.server.schemas import TaskStatus
 from rearq.utils import ms_to_datetime, timestamp_ms_now, to_ms_timestamp
@@ -112,8 +113,7 @@ class Task:
             logger.warning(f"Job {job_id} exists")
             return job
         if await self.is_disabled():
-            logger.warning(f"Task {self.name} is disabled")
-            return
+            raise TaskDisabledError(f"Task {self.name} is disabled")
         job = Job(
             task=self.name,
             args=args or arg,

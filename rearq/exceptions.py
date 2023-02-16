@@ -20,3 +20,9 @@ class DeserializationError(Exception):
     """
     Deserialization error
     """
+
+
+class TaskDisabledError(Exception):
+    """
+    Task disabled error
+    """

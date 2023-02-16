@@ -34,12 +34,26 @@
         </div>
     </div>
     <div class="mt-5">
+        <div class="d-flex mb-5">
+            <select class="form-select" id="task">
+                <option selected value="">Select task</option>
+                {% for t in tasks %}
+                    <option value="{{ t }}" {% if t == task %}
+                            selected
+                    {% endif %} >{{ t }}</option>
+                {% endfor %}
+            </select>
+        </div>
         <div id="chart" style="height:500px"></div>
     </div>
 {% endblock %}
 {% block body_end %}
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.0.2/dist/echarts.min.js"></script>
     <script>
+        $('#task').change(function () {
+            let task = $(this).val();
+            window.location.href = `${window.location.pathname}?task=` + task;
+        })
         let chart = echarts.init(document.getElementById('chart'));
         let option = {
             title: {
