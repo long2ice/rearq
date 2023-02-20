@@ -9,12 +9,12 @@ deps:
 	@poetry install -E mysql -E postgres
 
 style: deps
-	isort -src $(checkfiles)
-	black $(black_opts) $(checkfiles)
+	@isort -src $(checkfiles)
+	@black $(black_opts) $(checkfiles)
 
 check: deps
-	black --check $(black_opts) $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
-	ruff --fix $(checkfiles)
+	@black --check $(black_opts) $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
+	@ruff --fix $(checkfiles)
 	#mypy $(checkfiles)
 
 test: deps

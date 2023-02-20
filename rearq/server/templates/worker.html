@@ -42,26 +42,6 @@
                 </td>
                 <td>
                     <button class="btn btn-danger btn-sm" onclick="delete_worker('{{ worker.name }}')">Remove</button>
-                    <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#logs-{{ loop.index }}"
-                            onclick="show_logs('{{ worker.name }}',$(this))">Log
-                    </button>
-                    <div class="modal fade" id="logs-{{ loop.index }}" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-scrollable modal-xl">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="exampleModalLabel">Worker {{ worker.name }} Logs</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                            aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body bg-dark text-white">
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </td>
             </tr>
         {% endfor %}
@@ -70,17 +50,6 @@
 {% endblock %}
 {% block body_end %}
     <script>
-        function show_logs(name, btn) {
-            let modal = btn.parent().find('.modal-body');
-            $.ajax({
-                url: "{{ url_for("worker_logs") }}?name=" + name,
-                method: "GET",
-                success: res => {
-                    modal.html(res.replace(/\n/g, '<br/>'));
-                }
-            });
-        }
-
         function delete_worker(name) {
             $.ajax({
                 url: "{{ url_for("delete_worker") }}?name=" + name,

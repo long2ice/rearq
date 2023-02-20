@@ -1,16 +1,14 @@
 import json
-import os
 
-import aiofiles
 from fastapi import APIRouter, Depends
 from redis.asyncio.client import Redis
 from starlette.requests import Request
 from tortoise import timezone
 from tortoise.functions import Count
 
-from rearq import ReArq, constants
+from rearq import constants
 from rearq.server import templates
-from rearq.server.depends import get_rearq, get_redis
+from rearq.server.depends import get_redis
 from rearq.server.models import JobResult
 from rearq.utils import ms_to_datetime
 
@@ -51,11 +49,3 @@ async def get_workers(request: Request, redis: Redis = Depends(get_redis)):
 @router.delete("")
 async def delete_worker(name: str, redis: Redis = Depends(get_redis)):
     return await redis.hdel(constants.WORKER_KEY, name)
-
-
-@router.get("/log")
-async def worker_logs(name: str, rearq: ReArq = Depends(get_rearq)):
-    log_file = os.path.join(rearq.logs_dir, f"worker-{name}.log")
-    async with aiofiles.open(log_file, mode="r") as f:
-        content = await f.read()
-    return content
