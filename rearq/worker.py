@@ -177,6 +177,7 @@ class Worker:
             )
         )
         lock = None
+        e = None
         try:
             if task.run_with_lock:
                 lock = Lock(
@@ -208,12 +209,8 @@ class Worker:
             logger.info("%6.2fs ← %s ● %s" % ((timestamp_ms_now() - start_ms) / 1000, ref, result))
             self.jobs_complete += 1
 
-        except Exception as e:
-            if isinstance(e, asyncio.CancelledError):
-                e = "asyncio.CancelledError"
-            else:
-                if self.rearq.trace_exception:
-                    logger.exception(e)
+        except Exception as ex:
+            e = ex
             job_result.finish_time = timezone.now()
             self.jobs_failed += 1
 
@@ -244,6 +241,8 @@ class Worker:
 
         job_result.result = result
         await job_result.save()
+        if e and self.rearq.raise_job_error:
+            raise e
         return job_result
 
     @property

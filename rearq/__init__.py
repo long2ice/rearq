@@ -43,7 +43,7 @@ class ReArq:
         delay_queue_num: int = 1,
         keep_job_days: Optional[int] = None,
         logs_dir: Optional[str] = os.path.join(constants.WORKER_DIR, "logs"),
-        trace_exception: bool = False,
+        raise_job_error: bool = False,
         generate_schemas: bool = False,
     ):
         """
@@ -57,7 +57,7 @@ class ReArq:
         :param job_timeout: Job max timeout.
         :param expire: Job default expire time.
         :param delay_queue_num: How many key to store delay tasks
-        :param trace_exception: logger task exception
+        :param raise_job_error: raise job error
         :param generate_schemas: generate database schemas
         """
         self.job_timeout = job_timeout
@@ -72,7 +72,7 @@ class ReArq:
         self.keep_job_days = keep_job_days
         self.logs_dir = logs_dir
         self.db_url = db_url
-        self.trace_exception = trace_exception
+        self.raise_job_error = raise_job_error
         self.generate_schemas = generate_schemas
         self._init()
 

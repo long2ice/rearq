@@ -12,7 +12,7 @@ rearq = ReArq(
     keep_job_days=30,
     expire=60,
     job_retry=0,
-    trace_exception=True,
+    raise_job_error=True,
     generate_schemas=True,
 )
 
