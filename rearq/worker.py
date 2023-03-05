@@ -10,7 +10,7 @@ from uuid import uuid4
 import async_timeout
 from loguru import logger
 from redis.asyncio.lock import Lock
-from redis.exceptions import LockError, ResponseError
+from redis.exceptions import LockError, ResponseError, LockNotOwnedError
 from tortoise import timezone
 from tortoise.expressions import F
 
@@ -351,11 +351,14 @@ class TimerWorker(Worker):
         logger.info(
             "Trying to acquire timer lock because only one timer can be startup at same time..."
         )
-        async with Lock(
-            self._redis,
-            name=constants.WORKER_KEY_TIMER_LOCK,
-        ):
-            await super().run()
+        try:
+            async with Lock(
+                self._redis,
+                name=constants.WORKER_KEY_TIMER_LOCK,
+            ):
+                await super().run()
+        except LockNotOwnedError:
+            pass
 
     async def _run_at_start(self):
         jobs = []
