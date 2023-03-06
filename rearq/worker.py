@@ -68,7 +68,7 @@ class Worker:
         self._terminated = True
 
     def _handle_sig(self, signum: Signals) -> None:
-        self.terminate()
+        self._terminated = True
         sig = Signals(signum)
         logger.info(
             f"shutdown worker {self.worker_name} on %s ◆ %d jobs complete ◆ %d "
