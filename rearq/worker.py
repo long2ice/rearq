@@ -103,7 +103,7 @@ class Worker:
         logger.success(f"Start worker success with queue: {','.join(self.queues)}")
         logger.info(f"Registered tasks: {', '.join(self.register_tasks)}")
         await self._log_redis_info()
-        asyncio.ensure_future(self._subscribe_channel())
+        self._sub_task = asyncio.ensure_future(self._subscribe_channel())
         while not self._terminated:
             msgs = await self._redis.xreadgroup(
                 self.group_name,
@@ -322,6 +322,7 @@ class Worker:
         except asyncio.CancelledError:
             pass
         finally:
+            self._sub_task.cancel()
             await self._push_heartbeat(True)
             await self.close()
 
@@ -359,6 +360,8 @@ class TimerWorker(Worker):
                 await super().run()
         except LockNotOwnedError:
             pass
+        finally:
+            self._sub_task.cancel()
 
     async def _run_at_start(self):
         jobs = []
@@ -456,7 +459,7 @@ class TimerWorker(Worker):
 
         await self._log_redis_info()
         await self._run_at_start()
-        asyncio.ensure_future(self._subscribe_channel())
+        self._sub_task = asyncio.ensure_future(self._subscribe_channel())
         while not self._terminated:
             await self._sleep()
             await self._run_delay()
