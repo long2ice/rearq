@@ -322,7 +322,7 @@ class Worker:
         except asyncio.CancelledError:
             pass
         finally:
-            self._sub_task.cancel()
+            self._sub_task and self._sub_task.cancel()
             await self._push_heartbeat(True)
             await self.close()
 
@@ -361,7 +361,7 @@ class TimerWorker(Worker):
         except LockNotOwnedError:
             pass
         finally:
-            self._sub_task.cancel()
+            self._sub_task and self._sub_task.cancel()
 
     async def _run_at_start(self):
         jobs = []
