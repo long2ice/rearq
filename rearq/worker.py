@@ -56,6 +56,7 @@ class Worker:
         self._tasks: Set[asyncio.Task[Any]] = set()
         self._running_tasks_map: Dict[str, List[Tuple[str, asyncio.Task[Any]]]] = {}
         self._task_map = rearq.task_map
+        self._sub_task = None
         self.jobs_complete = 0
         self.jobs_retried = 0
         self.jobs_failed = 0
