@@ -23,7 +23,7 @@ fastapi = { version = "*", extras = ["all"] }
 loguru = "*"
 aiofiles = "*"
 tortoise-orm = "*"
-asyncmy = { version = "*", optional = true }
+asyncmy = { version = "^0.2.7", optional = true , allow-prereleases = true }
 asyncpg = { version = "*", optional = true }
 
 [tool.poetry.dev-dependencies]
