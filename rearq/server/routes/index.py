@@ -18,7 +18,7 @@ class ToDate(Function):
     database_func = Date
 
 
-@router.get("/", include_in_schema=False)
+@router.get("/", include_in_schema=False, name="rearq.index")
 async def index(
     request: Request,
     rearq: ReArq = Depends(get_rearq),

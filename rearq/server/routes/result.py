@@ -13,7 +13,7 @@ from rearq.server.responses import JobResultListOut
 router = APIRouter()
 
 
-@router.get("/data", response_model=JobResultListOut)
+@router.get("/data", response_model=JobResultListOut, name="rearq.get_results")
 async def get_results(
     task: Optional[str] = None,
     job_id: Optional[str] = None,
@@ -40,12 +40,12 @@ async def get_results(
     return {"rows": results, "total": await qs.count()}
 
 
-@router.delete("")
+@router.delete("", name="rearq.delete_result")
 async def delete_result(ids: str):
     return await JobResult.filter(id__in=ids.split(",")).delete()
 
 
-@router.get("", include_in_schema=False)
+@router.get("", include_in_schema=False, name="rearq.job_result_page")
 async def job_result_page(
     request: Request,
     redis: Redis = Depends(get_redis),

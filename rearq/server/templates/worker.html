@@ -52,7 +52,7 @@
     <script>
         function delete_worker(name) {
             $.ajax({
-                url: "{{ url_for("delete_worker") }}?name=" + name,
+                url: "{{ url_for("rearq.delete_worker") }}?name=" + name,
                 method: "DELETE",
                 success: res => {
                     location.reload();

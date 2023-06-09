@@ -36,34 +36,34 @@
             <ul class="nav flex-column">
                 <li class="nav-item">
                     <a class="nav-link {% if page_title == 'dashboard' %}active{% endif %}"
-                       href="{{ url_for("index") }}">
+                       href="{{ url_for("rearq.index") }}">
                         <span data-feather="home"></span>
                         Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if page_title == 'worker' %}active{% endif %}"
-                       href="{{ url_for("get_workers") }}">
+                       href="{{ url_for("rearq.get_workers") }}">
                         <span data-feather="briefcase"></span>
                         Worker
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if page_title == 'task' %}active{% endif %}"
-                       href="{{ url_for("get_tasks") }}">
+                       href="{{ url_for("rearq.get_tasks") }}">
                         <span data-feather="inbox"></span>
                         Task
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {% if page_title == 'job' %}active{% endif %}" href="{{ url_for("job_page") }}">
+                    <a class="nav-link {% if page_title == 'job' %}active{% endif %}" href="{{ url_for("rearq.job_page") }}">
                         <span data-feather="clock"></span>
                         Job
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if page_title == 'result' %}active{% endif %}"
-                       href="{{ url_for("job_result_page") }}">
+                       href="{{ url_for("rearq.job_result_page") }}">
                         <span data-feather="file-text"></span>
                         Result
                     </a>

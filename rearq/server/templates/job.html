@@ -50,7 +50,7 @@
            data-pagination="true"
            data-side-pagination="server"
            data-pagination-loop="false"
-           data-url="{{ url_for("get_jobs") }}" data-query-params="queryParams">
+           data-url="{{ url_for("rearq.get_jobs") }}" data-query-params="queryParams">
         <thead>
         <tr>
             <th data-field="state" data-checkbox="true"></th>
@@ -109,7 +109,7 @@
                 job_id: job_id,
             }
             $.ajax({
-                url: '{{ url_for("cancel_job") }}',
+                url: '{{ url_for("rearq.cancel_job") }}',
                 method: 'PUT',
                 data: JSON.stringify(data),
                 contentType: 'application/json',
@@ -236,7 +236,7 @@
                 data.job_retry_after = job_retry_after;
             }
             $.ajax({
-                url: '{{ url_for("update_job") }}',
+                url: '{{ url_for("rearq.update_job") }}',
                 method: 'PUT',
                 data: JSON.stringify(data),
                 contentType: 'application/json',
@@ -261,7 +261,7 @@
         }
 
         function jobIdFormatter(value, row) {
-            return `<a class="text-decoration-none" href="{{ url_for("job_result_page") }}?job_id=${value}">${value}</a>`;
+            return `<a class="text-decoration-none" href="{{ url_for("rearq.job_result_page") }}?job_id=${value}">${value}</a>`;
         }
 
         $(function () {
@@ -274,7 +274,7 @@
                     return row.id
                 });
                 $.ajax({
-                    url: "{{ url_for("delete_job") }}?ids=" + ids,
+                    url: "{{ url_for("rearq.delete_job") }}?ids=" + ids,
                     method: 'DELETE',
                     success: res => {
                         table.bootstrapTable('remove', {field: 'id', values: ids});

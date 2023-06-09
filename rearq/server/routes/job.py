@@ -16,7 +16,7 @@ from rearq.server.schemas import AddJobIn, CancelJobIn, TaskStatus, UpdateJobIn
 router = APIRouter()
 
 
-@router.get("", include_in_schema=False)
+@router.get("", include_in_schema=False, name="rearq.job_page")
 async def job_page(
     request: Request, redis: Redis = Depends(get_redis), rearq: ReArq = Depends(get_rearq)
 ):
@@ -33,7 +33,7 @@ async def job_page(
     )
 
 
-@router.get("/data", response_model=JobListOut)
+@router.get("/data", response_model=JobListOut, name="rearq.get_jobs")
 async def get_jobs(
     task: Optional[str] = None,
     job_id: Optional[str] = None,
@@ -57,12 +57,12 @@ async def get_jobs(
     return {"rows": results, "total": await qs.count()}
 
 
-@router.get("/result")
+@router.get("/result", name="rearq.get_job_result")
 async def get_job_result(job_id: str):
     return await JobResult.get_or_none(job_id=job_id)
 
 
-@router.put("")
+@router.put("", name="rearq.update_job")
 async def update_job(update_job_in: UpdateJobIn):
     job = await Job.get_or_none(job_id=update_job_in.job_id)
     if not job:
@@ -73,7 +73,7 @@ async def update_job(update_job_in: UpdateJobIn):
         raise HTTPException(status_code=HTTP_409_CONFLICT, detail="Can't update job")
 
 
-@router.put("/cancel")
+@router.put("/cancel", name="rearq.cancel_job")
 async def cancel_job(cancel_job_in: CancelJobIn, rearq: ReArq = Depends(get_rearq)):
     job = await Job.get_or_none(job_id=cancel_job_in.job_id)
     if not job:
@@ -89,12 +89,12 @@ async def cancel_job(cancel_job_in: CancelJobIn, rearq: ReArq = Depends(get_rear
         raise HTTPException(status_code=HTTP_409_CONFLICT, detail="Can't cancel job")
 
 
-@router.delete("")
+@router.delete("", name="rearq.delete_job")
 async def delete_job(ids: str):
     return await Job.filter(id__in=ids.split(",")).delete()
 
 
-@router.post("", response_model=JobOut)
+@router.post("", response_model=JobOut, name="rearq.add_job")
 async def add_job(add_job_in: AddJobIn, rearq: ReArq = Depends(get_rearq)):
     task = rearq.task_map.get(add_job_in.task)
     if await rearq.redis.hget(constants.TASK_KEY, add_job_in.task) == TaskStatus.disabled:

@@ -15,7 +15,7 @@ from rearq.utils import ms_to_datetime
 router = APIRouter()
 
 
-@router.get("", include_in_schema=False)
+@router.get("", include_in_schema=False, name="rearq.get_workers")
 async def get_workers(request: Request, redis: Redis = Depends(get_redis)):
     workers_info = await redis.hgetall(constants.WORKER_KEY)
     workers = []
@@ -46,6 +46,6 @@ async def get_workers(request: Request, redis: Redis = Depends(get_redis)):
     )
 
 
-@router.delete("")
+@router.delete("", name="rearq.delete_worker")
 async def delete_worker(name: str, redis: Redis = Depends(get_redis)):
     return await redis.hdel(constants.WORKER_KEY, name)
