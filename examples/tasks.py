@@ -1,12 +1,12 @@
 import asyncio
 
 from loguru import logger
+from tortoise import Tortoise
 
 from examples import settings
 from rearq import JOB_TIMEOUT_UNLIMITED, ReArq
 
 rearq = ReArq(
-    db_url=settings.DB_URL,
     redis_url=settings.REDIS_URL,
     delay_queue_num=2,
     keep_job_days=7,
@@ -24,6 +24,10 @@ async def on_shutdown():
 @rearq.on_startup
 async def on_startup():
     logger.debug("rearq is startup")
+    await Tortoise.init(
+        db_url=settings.DB_URL,
+        modules={"rearq": ["rearq.server.models"]},
+    )
 
 
 @rearq.task(run_at_start=(1, 1))

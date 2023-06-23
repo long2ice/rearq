@@ -9,13 +9,11 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 from redis.asyncio.client import Redis
 from redis.asyncio.connection import ConnectionPool
 from redis.asyncio.sentinel import Sentinel
-from tortoise import Tortoise
 
 from rearq import constants
 from rearq.constants import CHANNEL, JOB_TIMEOUT_UNLIMITED
 from rearq.enums import ChannelType
 from rearq.exceptions import UsageError
-from rearq.server import models
 from rearq.task import CronTask, Task
 
 Serializer = Callable[[Dict[str, Any]], bytes]
@@ -31,7 +29,6 @@ class ReArq:
 
     def __init__(
         self,
-        db_url: str,
         redis_url: str = "redis://localhost:6379/0",
         sentinels: Optional[List[str]] = None,
         sentinel_master: str = "master",
@@ -67,7 +64,6 @@ class ReArq:
         self.delay_queue_num = delay_queue_num
         self.keep_job_days = keep_job_days
         self.logs_dir = logs_dir
-        self.db_url = db_url
         self.trace_exception = trace_exception
         self._init()
 
@@ -217,16 +213,6 @@ class ReArq:
             tasks.append(fun())
         if tasks:
             await asyncio.gather(*tasks)
-
-    async def _init_db(self):
-        await Tortoise.init(
-            db_url=self.db_url,
-            modules={"rearq": [models]},
-        )
-        await Tortoise.generate_schemas()
-
-    async def init(self):
-        await self._init_db()
 
     async def startup(self):
         tasks = []

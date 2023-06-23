@@ -22,16 +22,6 @@ app.mount("/rearq", rearq_app)
 rearq_app.set_rearq(rearq)
 
 
-@app.on_event("startup")
-async def startup():
-    await rearq.init()
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    await rearq.close()
-
-
 @app.get("/")
 async def index():
     print(await Test.all())

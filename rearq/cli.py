@@ -39,7 +39,6 @@ async def cli(ctx: Context, rearq: str, verbose):
     try:
         module = importlib.import_module(rearq_path)
         r = getattr(module, rearq, None)  # type:ReArq
-        await r.init()
         await r.startup()
         ctx.ensure_object(dict)
         ctx.obj["rearq"] = r
@@ -93,12 +92,6 @@ def server(ctx: Context):
     rearq = ctx.obj["rearq"]
     app.set_rearq(rearq)
 
-    verbose = ctx.obj["verbose"]
-
-    @app.on_event("startup")
-    async def startup():
-        await rearq.init()
-
     @app.on_event("shutdown")
     async def shutdown():
         await rearq.close()
@@ -108,7 +101,7 @@ def server(ctx: Context):
     }
     if "port" in kwargs:
         kwargs["port"] = int(kwargs["port"])
-    uvicorn.run("rearq.server.app:app", debug=verbose, **kwargs)
+    uvicorn.run("rearq.server.app:app", **kwargs)
 
 
 def main():
