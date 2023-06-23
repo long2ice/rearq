@@ -12,7 +12,7 @@ from rearq.constants import CHANNEL, WORKER_KEY
 from rearq.enums import ChannelType, JobStatus
 from rearq.server.models import Job, JobResult
 from rearq.server.schemas import TaskStatus
-from rearq.utils import ms_to_datetime, timestamp_ms_now, to_ms_timestamp
+from rearq.utils import timestamp_ms_now, to_ms_timestamp
 
 
 class Task:
