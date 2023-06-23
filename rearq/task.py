@@ -13,7 +13,7 @@ from rearq.enums import ChannelType, JobStatus
 from rearq.exceptions import TaskDisabledError
 from rearq.server.models import Job, JobResult
 from rearq.server.schemas import TaskStatus
-from rearq.utils import ms_to_datetime, timestamp_ms_now, to_ms_timestamp
+from rearq.utils import timestamp_ms_now, to_ms_timestamp
 
 
 class Task:
@@ -106,7 +106,10 @@ class Task:
         expire_time = None
         expires = expire or self.expire
         if expires:
-            expire_time = ms_to_datetime(to_ms_timestamp(expires))
+            if isinstance(expires, datetime.datetime):
+                expire_time = expires
+            else:
+                expire_time = timezone.now() + datetime.timedelta(seconds=expires)
 
         job = await Job.get_or_none(job_id=job_id)
         if job:

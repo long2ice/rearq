@@ -67,6 +67,11 @@ async def on_shutdown():
 async def on_startup():
     # you should do some initialization work here
     print("startup")
+    # you must init Tortoise ORM here
+    await Tortoise.init(
+        db_url=settings.DB_URL,
+        modules={"rearq": ["rearq.server.models"]},
+    )
 
 
 @rearq.task(queue="q1")
@@ -117,7 +122,10 @@ app = FastAPI()
 
 @app.on_event("startup")
 async def startup() -> None:
-    await rearq.init()
+    await Tortoise.init(
+        db_url=settings.DB_URL,
+        modules={"rearq": ["rearq.server.models"]},
+    )
 
 
 @app.on_event("shutdown")

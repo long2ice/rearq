@@ -9,13 +9,11 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 from redis.asyncio.client import Redis
 from redis.asyncio.connection import ConnectionPool
 from redis.asyncio.sentinel import Sentinel
-from tortoise import Tortoise
 
 from rearq import constants
 from rearq.constants import CHANNEL, JOB_TIMEOUT_UNLIMITED
 from rearq.enums import ChannelType
 from rearq.exceptions import UsageError
-from rearq.server import models
 from rearq.task import CronTask, Task
 
 Serializer = Callable[[Dict[str, Any]], bytes]
@@ -31,7 +29,6 @@ class ReArq:
 
     def __init__(
         self,
-        db_url: str,
         redis_url: str = "redis://localhost:6379/0",
         sentinels: Optional[List[str]] = None,
         sentinel_master: str = "master",
@@ -44,7 +41,6 @@ class ReArq:
         keep_job_days: Optional[int] = None,
         logs_dir: Optional[str] = os.path.join(constants.WORKER_DIR, "logs"),
         raise_job_error: bool = False,
-        generate_schemas: bool = False,
     ):
         """
         :param db_url: database url
@@ -58,7 +54,6 @@ class ReArq:
         :param expire: Job default expire time.
         :param delay_queue_num: How many key to store delay tasks
         :param raise_job_error: raise job error
-        :param generate_schemas: generate database schemas
         """
         self.job_timeout = job_timeout
         self.max_jobs = max_jobs
@@ -71,9 +66,7 @@ class ReArq:
         self.delay_queue_num = delay_queue_num
         self.keep_job_days = keep_job_days
         self.logs_dir = logs_dir
-        self.db_url = db_url
         self.raise_job_error = raise_job_error
-        self.generate_schemas = generate_schemas
         self._init()
 
     def _init(self):
@@ -221,14 +214,6 @@ class ReArq:
             tasks.append(fun())
         if tasks:
             await asyncio.gather(*tasks)
-
-    async def init(self):
-        await Tortoise.init(
-            db_url=self.db_url,
-            modules={"rearq": [models]},
-        )
-        if self.generate_schemas:
-            await Tortoise.generate_schemas()
 
     async def startup(self):
         tasks = []

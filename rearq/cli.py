@@ -39,7 +39,6 @@ async def cli(ctx: Context, rearq: str, verbose: bool):
     try:
         module = importlib.import_module(rearq_path)
         r = getattr(module, rearq, None)  # type:ReArq
-        await r.init()
         await r.startup()
         ctx.ensure_object(dict)
         ctx.obj["rearq"] = r
@@ -92,10 +91,6 @@ async def timer(ctx: Context):
 def server(ctx: Context):
     rearq = ctx.obj["rearq"]
     app.set_rearq(rearq)
-
-    @app.on_event("startup")
-    async def startup():
-        await rearq.init()
 
     @app.on_event("shutdown")
     async def shutdown():
