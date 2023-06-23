@@ -30,7 +30,6 @@ class Task:
         run_with_lock: bool = False,
         run_at_start: Optional[bool] = False,
     ):
-
         self.job_retry = job_retry
         self.job_retry_after = job_retry_after
         self.job_timeout = job_timeout
@@ -98,7 +97,10 @@ class Task:
         expire_time = None
         expires = expire or self.expire
         if expires:
-            expire_time = ms_to_datetime(to_ms_timestamp(expires))
+            if isinstance(expires, datetime.datetime):
+                expire_time = expires
+            else:
+                expire_time = timezone.now() + datetime.timedelta(seconds=expires)
 
         job = await Job.get_or_none(job_id=job_id)
         if job:
