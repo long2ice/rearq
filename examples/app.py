@@ -12,9 +12,7 @@ app = FastAPI()
 register_tortoise(
     app,
     db_url=settings.DB_URL,
-    modules={
-        "models": ["examples.models"],
-    },
+    modules={"models": ["examples.models"], "rearq": ["rearq.server.models"]},
     generate_schemas=True,
     add_exception_handlers=True,
 )
@@ -24,7 +22,6 @@ rearq_app.set_rearq(rearq)
 
 @app.on_event("startup")
 async def startup():
-    await rearq.init()
     await rearq_app.start_worker(with_timer=True, block=False)
 
 

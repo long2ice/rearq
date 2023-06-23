@@ -10,7 +10,7 @@ from uuid import uuid4
 import async_timeout
 from loguru import logger
 from redis.asyncio.lock import Lock
-from redis.exceptions import LockError, ResponseError, LockNotOwnedError
+from redis.exceptions import LockError, LockNotOwnedError, ResponseError
 from tortoise import timezone
 from tortoise.expressions import F
 
