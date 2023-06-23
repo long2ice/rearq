@@ -13,7 +13,6 @@ rearq = ReArq(
     expire=60,
     job_retry=0,
     raise_job_error=True,
-    generate_schemas=True,
 )
 
 
