@@ -15,15 +15,15 @@ packages = [
 include = ["LICENSE", "README.md", "CHANGELOG.md"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 click = "*"
 redis = "^4.2.0rc1"
 crontab = "*"
 fastapi = { version = "*", extras = ["all"] }
 loguru = "*"
 aiofiles = "*"
-tortoise-orm = "*"
-asyncmy = { version = "^0.2.7", optional = true , allow-prereleases = true }
+tortoise-orm = { git = "https://github.com/tortoise/tortoise-orm.git", branch = "develop" }
+asyncmy = { version = "^0.2.8", optional = true }
 asyncpg = { version = "*", optional = true }
 
 [tool.poetry.dev-dependencies]
