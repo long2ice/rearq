@@ -8,21 +8,21 @@ from rearq.enums import TaskStatus
 
 class AddJobIn(BaseModel):
     task: str
-    args: Optional[List[Any]]
-    kwargs: Optional[dict]
-    job_id: Optional[str]
-    countdown: Optional[Union[float, datetime.timedelta]]
-    eta: Optional[datetime.datetime]
+    args: Optional[List[Any]] = None
+    kwargs: Optional[dict] = None
+    job_id: Optional[str] = None
+    countdown: Optional[Union[float, datetime.timedelta]] = None
+    eta: Optional[datetime.datetime] = None
     job_retry: int = 0
 
 
 class UpdateJobIn(BaseModel):
     job_id: str
-    args: Optional[List[Any]]
-    kwargs: Optional[dict]
-    expire_time: Optional[datetime.datetime]
-    job_retry: Optional[int]
-    job_retry_after: Optional[int]
+    args: Optional[List[Any]] = None
+    kwargs: Optional[dict] = None
+    expire_time: Optional[datetime.datetime] = None
+    job_retry: Optional[int] = None
+    job_retry_after: Optional[int] = None
 
 
 class CancelJobIn(BaseModel):
