@@ -1348,14 +1348,16 @@ name = "tortoise-orm"
 version = "0.20.0"
 description = "Easy async ORM for python, built with relations in mind"
 optional = false
-python-versions = "^3.8"
-files = []
-develop = false
+python-versions = ">=3.8,<4.0"
+files = [
+    {file = "tortoise_orm-0.20.0-py3-none-any.whl", hash = "sha256:1891ad935de689ddf002c5c65c864176d28659ab6069e45f0e2cde32359bb8d9"},
+    {file = "tortoise_orm-0.20.0.tar.gz", hash = "sha256:283af584d685dcc58d6cc1da35b9115bb1e41c89075eae2a19c493b39b9b41f7"},
+]
 
 [package.dependencies]
-aiosqlite = ">=0.16.0, <0.18.0"
-iso8601 = "^1.0.2"
-pypika-tortoise = "^0.1.6"
+aiosqlite = ">=0.16.0,<0.18.0"
+iso8601 = ">=1.0.2,<2.0.0"
+pypika-tortoise = ">=0.1.6,<0.2.0"
 pytz = "*"
 
 [package.extras]
@@ -1365,12 +1367,6 @@ asyncmy = ["asyncmy (>=0.2.8,<0.3.0)"]
 asyncodbc = ["asyncodbc (>=0.1.1,<0.2.0)"]
 asyncpg = ["asyncpg"]
 psycopg = ["psycopg[binary,pool] (>=3.0.12,<4.0.0)"]
-
-[package.source]
-type = "git"
-url = "https://github.com/tortoise/tortoise-orm.git"
-reference = "develop"
-resolved_reference = "0c8efde78c4dae480b229e75790631297cab7fb3"
 
 [[package]]
 name = "types-pyopenssl"
@@ -1745,4 +1741,4 @@ postgres = ["asyncpg"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "00d7d7c27e8df87652095c7faa496dd022c7cb19661bebc63502a45bd91b56e0"
+content-hash = "ce449be461253fa7301cf811f57fbaea32176b0068c5c5470292913ef5dce6f8"

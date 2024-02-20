@@ -22,7 +22,7 @@ crontab = "*"
 fastapi = { version = "*", extras = ["all"] }
 loguru = "*"
 aiofiles = "*"
-tortoise-orm = { git = "https://github.com/tortoise/tortoise-orm.git", branch = "develop" }
+tortoise-orm = "^0.20.0"
 asyncmy = { version = "^0.2.8", optional = true }
 asyncpg = { version = "*", optional = true }
 
