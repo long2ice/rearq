@@ -22,7 +22,7 @@ crontab = "*"
 fastapi = { version = "*", extras = ["all"] }
 loguru = "*"
 aiofiles = "*"
-tortoise-orm = "^0.20.0"
+tortoise-orm = "^0.21.5"
 asyncmy = { version = "^0.2.8", optional = true }
 asyncpg = { version = "*", optional = true }
 

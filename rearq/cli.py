@@ -91,11 +91,6 @@ async def timer(ctx: Context):
 def server(ctx: Context):
     rearq = ctx.obj["rearq"]
     app.set_rearq(rearq)
-
-    @app.on_event("shutdown")
-    async def shutdown():
-        await rearq.close()
-
     kwargs = {
         ctx.args[i][2:].replace("-", "_"): ctx.args[i + 1] for i in range(0, len(ctx.args), 2)
     }
