@@ -17,7 +17,6 @@ include = ["LICENSE", "README.md", "CHANGELOG.md"]
 [tool.poetry.dependencies]
 python = "^3.8"
 click = "*"
-redis = "^4.2.0rc1"
 crontab = "*"
 fastapi = { version = "*", extras = ["all"] }
 loguru = "*"
@@ -25,6 +24,7 @@ aiofiles = "*"
 tortoise-orm = "^0.21.5"
 asyncmy = { version = "^0.2.8", optional = true }
 asyncpg = { version = "*", optional = true }
+redis = "^5.0.7"
 
 [tool.poetry.dev-dependencies]
 ruff = "*"
