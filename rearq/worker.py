@@ -183,6 +183,7 @@ class Worker:
             if task.run_with_lock:
                 lock = Lock(
                     self._redis,
+                    timeout=task.lock_timeout,
                     name=constants.WORKER_TASK_LOCK.format(task=task.name),
                     blocking=False,
                 )

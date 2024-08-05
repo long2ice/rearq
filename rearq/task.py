@@ -29,6 +29,7 @@ class Task:
         job_timeout: int,
         expire: Optional[Union[float, datetime.datetime]] = None,
         run_with_lock: bool = False,
+        lock_timeout: Optional[int] = None,
         run_at_start: Optional[bool] = False,
     ):
         self.job_retry = job_retry
@@ -41,6 +42,7 @@ class Task:
         self.expire = expire
         self.name = name
         self.run_with_lock = run_with_lock
+        self.lock_timeout = lock_timeout
         self.run_at_start = run_at_start
         self.redis = rearq.redis
 
@@ -218,6 +220,7 @@ class CronTask(Task):
         expire: Optional[Union[float, datetime.datetime]] = None,
         run_with_lock: bool = False,
         run_at_start: Optional[bool] = False,
+        lock_timeout: Optional[int] = None,
     ):
         super().__init__(
             bind,
@@ -231,6 +234,7 @@ class CronTask(Task):
             expire,
             run_with_lock,
             run_at_start,
+            lock_timeout,
         )
         self.crontab = CronTab(cron)
         self.cron = cron

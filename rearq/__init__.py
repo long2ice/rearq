@@ -113,6 +113,7 @@ class ReArq:
         expire: Optional[Union[float, datetime.datetime]] = None,
         run_at_start: Optional[Union[bool, Tuple, Dict]] = False,
         run_with_lock: bool = False,
+        lock_timeout: Optional[int] = None,
     ):
         if not callable(func):
             raise UsageError("Task must be Callable!")
@@ -133,6 +134,7 @@ class ReArq:
             expire=expire or self.expire,
             bind=bind,
             run_with_lock=run_with_lock,
+            lock_timeout=lock_timeout,
             run_at_start=run_at_start,
         )
         if cron:
@@ -157,6 +159,7 @@ class ReArq:
         expire: Optional[Union[float, datetime.datetime]] = None,
         run_at_start: Optional[Union[bool, Tuple, Dict]] = False,
         run_with_lock: bool = False,
+        lock_timeout: Optional[int] = None,
     ):
         """
         Task decorator
@@ -169,7 +172,8 @@ class ReArq:
         :param job_timeout: Override default job timeout.
         :param expire: Override default expire.
         :param run_at_start: Whether run at startup or not, only work timer worker
-        :param run_with_lock: Run task with redis lock
+        :param run_with_lock: Runs task with redis lock
+        :param lock_timeout: Lock timeout
         :return:
         """
 
@@ -186,6 +190,7 @@ class ReArq:
                 expire,
                 run_at_start,
                 run_with_lock,
+                lock_timeout,
             )
 
         return wrapper
