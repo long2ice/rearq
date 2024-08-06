@@ -21,10 +21,10 @@ async def lifespan(_app: FastAPI):
         add_exception_handlers=True,
     ):
         yield
-        await rearq.close()
+    await rearq.close()
 
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 app.mount("/rearq", rearq_app)
 rearq_app.set_rearq(rearq)
 

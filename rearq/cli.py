@@ -1,10 +1,9 @@
 import asyncio
 import importlib
 import sys
-from functools import wraps
 from typing import List
 
-import click
+import asyncclick as click
 import uvicorn
 from click import BadArgumentUsage, Context
 
@@ -13,24 +12,11 @@ from rearq.version import VERSION
 from rearq.worker import TimerWorker, Worker
 
 
-def coro(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        loop = asyncio.get_event_loop()
-        try:
-            return loop.run_until_complete(f(*args, **kwargs))
-        except asyncio.CancelledError:
-            pass
-
-    return wrapper
-
-
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.version_option(VERSION, "-v", "--version")
 @click.option("--verbose", default=False, is_flag=True, help="Enable verbose output.")
 @click.argument("rearq", required=True)
 @click.pass_context
-@coro
 async def cli(ctx: Context, rearq: str, verbose: bool):
     splits = rearq.split(":")
     rearq_path = splits[0]
@@ -58,7 +44,6 @@ async def cli(ctx: Context, rearq: str, verbose: bool):
 @click.option("--consumer-name", required=False, help="Consumer name.")
 @click.option("-t", "--with-timer", required=False, is_flag=True, help="Start with timer.")
 @click.pass_context
-@coro
 async def worker(
     ctx: Context, queue: List[str], group_name: str, consumer_name: str, with_timer: bool
 ):
@@ -73,7 +58,6 @@ async def worker(
 
 @cli.command(help="Start a timer.")
 @click.pass_context
-@coro
 async def timer(ctx: Context):
     rearq = ctx.obj["rearq"]
     w = TimerWorker(rearq)
