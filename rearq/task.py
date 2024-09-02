@@ -208,33 +208,11 @@ class CronTask(Task):
 
     def __init__(
         self,
-        bind: bool,
-        name: str,
-        function: Callable,
-        queue: str,
-        rearq,
-        job_retry: int,
-        job_retry_after: int,
-        job_timeout: int,
         cron: str,
-        expire: Optional[Union[float, datetime.datetime]] = None,
-        run_with_lock: bool = False,
-        run_at_start: Optional[bool] = False,
-        lock_timeout: Optional[int] = None,
+        **kwargs: Any,
     ):
         super().__init__(
-            bind,
-            name,
-            function,
-            queue,
-            rearq,
-            job_retry,
-            job_retry_after,
-            job_timeout,
-            expire,
-            run_with_lock,
-            run_at_start,
-            lock_timeout,
+            **kwargs,
         )
         self.crontab = CronTab(cron)
         self.cron = cron

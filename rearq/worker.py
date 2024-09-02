@@ -346,7 +346,7 @@ class TimerWorker(Worker):
 
     def _handle_sig(self, signum: Signals) -> None:
         self._terminated = True
-        self.sleep_task.cancel()
+        self.sleep_task and self.sleep_task.cancel()
         sig = Signals(signum)
         logger.info(f"shutdown timer {self.worker_name} on %s" % (sig.name,))
 
