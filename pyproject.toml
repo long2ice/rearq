@@ -25,6 +25,7 @@ asyncmy = { version = "^0.2.8", optional = true }
 asyncpg = { version = "*", optional = true }
 redis = "^5.0.7"
 asyncclick = "^8.1.7.2"
+async-timeout = "*"
 
 [tool.poetry.dev-dependencies]
 ruff = "*"
