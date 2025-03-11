@@ -2,7 +2,7 @@ import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends
-from pypika.functions import Date
+from pypika_tortoise.functions import Date
 from starlette.requests import Request
 from tortoise.functions import Count, Function
 

@@ -15,19 +15,19 @@ packages = [
 include = ["LICENSE", "README.md", "CHANGELOG.md"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 crontab = "*"
 fastapi = { version = "*", extras = ["all"] }
 loguru = "*"
 aiofiles = "*"
-tortoise-orm = "^0.21.5"
 asyncmy = { version = "^0.2.8", optional = true }
 asyncpg = { version = "*", optional = true }
 redis = "^5.0.7"
 asyncclick = "^8.1.7.2"
 async-timeout = "*"
+tortoise-orm = "^0.24.2"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 ruff = "*"
 isort = "*"
 black = "*"
