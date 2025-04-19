@@ -25,7 +25,7 @@ asyncpg = { version = "*", optional = true }
 redis = "^5.0.7"
 asyncclick = "^8.1.7.2"
 async-timeout = "*"
-tortoise-orm = "^0.24.2"
+tortoise-orm = "^0.25.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "*"
